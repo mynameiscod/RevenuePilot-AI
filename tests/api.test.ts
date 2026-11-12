@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import request from "supertest";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { memoryMongoOptions } from "../scripts/mongo-options.ts";
 import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 import { createApp } from "../apps/api/src/app.ts";
@@ -85,10 +86,7 @@ async function createActor(email: string, role: Role, tenantId: string) {
   return auth(res);
 }
 beforeAll(async () => {
-  replica = await MongoMemoryReplSet.create({
-    replSet: { count: 1, args: ["--nounixsocket"] },
-    binary: { version: "7.0.48" },
-  });
+  replica = await MongoMemoryReplSet.create(memoryMongoOptions());
   const config = readConfig({
     NODE_ENV: "test",
     MONGODB_URI: replica.getUri("revenuepilot_test"),

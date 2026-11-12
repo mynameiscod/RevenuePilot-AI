@@ -33,6 +33,8 @@ Open **http://localhost:3001** and choose **Explore sample workspace**. No provi
 
 The demo script works without shell-specific environment assignments, including on Windows. The supplied development origin is exactly `http://localhost:3001`; using a different browser origin requires a matching `WEB_ORIGIN`. To change port, also set that origin in `.env`, then use `npm run dev:demo -- --port 3002`.
 
+If an earlier checkout fails on Windows with MongoDB exit code `2`, update with `git pull --ff-only origin main` and retry. The initial script incorrectly passed the Unix-only `--nounixsocket` option to Windows; demo and test startup now use shared platform-aware options. The `node-abort-controller` npm warning comes from a BullMQ dependency and does not cause this startup failure.
+
 ## Persistent local development
 
 Docker Engine with Compose is required for this path. These commands start only this project's resources:

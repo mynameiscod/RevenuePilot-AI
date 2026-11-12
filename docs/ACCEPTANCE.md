@@ -2,7 +2,7 @@
 
 ## Automated local checks
 
-The suite uses a disposable **real MongoDB replica set**, not a mocked collection layer. The database is created solely for the tests. MongoDB 7.0.48 uses `--nounixsocket` for compatibility with restricted local environments; no sandbox protection is disabled.
+The suite uses a disposable **real MongoDB replica set**, not a mocked collection layer. The database is created solely for the tests. Shared startup options use MongoDB 7.0.48 and pass `--nounixsocket` only on Unix platforms; Windows must not receive that unsupported flag. No sandbox protection is disabled.
 
 | Area            | Acceptance condition                                                                                                           | Coverage                             |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
@@ -20,7 +20,7 @@ The suite uses a disposable **real MongoDB replica set**, not a mocked collectio
 | SDK             | No sending before consent; query/fragment excluded; withdrawal rotates identity; rate-limit retry preserves IDs; queue bounded | SDK tests                            |
 | Adapter safety  | All eleven providers configuration-only; unsupported execution fails explicitly                                                | Domain/API tests                     |
 
-Run `npm run typecheck`, `npm test`, `npm run build` and `npm audit --omit=dev`. The initial local validation passed **27 tests** after adding SDK coverage; see CI for the current commit's independently executed result. Production dependency audit reported zero known vulnerabilities at the time of implementation; future advisories can change that result.
+Run `npm run typecheck`, `npm test`, `npm run build` and `npm audit --omit=dev`. The original foundation passed 27 tests. The Windows startup fix adds an end-to-end process smoke test, bringing the suite to 28: it launches the actual demo command, waits for MongoDB/API/Vite, signs into the synthetic workspace and checks the 48 seeded leads. CI runs on Linux with Node 24.22.1 and Windows with Node 24.11.0; consult the current commit's CI result for execution status. Production dependency audit reported zero known vulnerabilities at the time of implementation; future advisories can change that result.
 
 ## Browser verification performed
 

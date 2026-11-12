@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { memoryMongoOptions } from "./mongo-options.ts";
 
 // Forward standard Vite CLI options, including those supplied by a local preview runner.
 for (const [flag, variable] of [
@@ -20,10 +21,7 @@ if (demo) {
     throw new Error("Demo mode is unavailable in production.");
   const { MongoMemoryReplSet } = await import("mongodb-memory-server");
   // Memory demo is ephemeral, contains only synthetic data and has no external connections.
-  memoryServer = await MongoMemoryReplSet.create({
-    replSet: { count: 1, args: ["--nounixsocket"] },
-    binary: { version: "7.0.48" },
-  });
+  memoryServer = await MongoMemoryReplSet.create(memoryMongoOptions());
   process.env.MONGODB_URI = memoryServer.getUri("revenuepilot_demo");
   process.env.DATA_ENCRYPTION_KEY = randomBytes(32).toString("hex");
   process.env.NODE_ENV = "development";
@@ -73,6 +71,12 @@ async function stop(code = 0) {
 }
 process.on("SIGINT", () => stop());
 process.on("SIGTERM", () => stop());
+// A parent test/controller can request graceful shutdown on Windows as well.
+// This channel only exists when the process was forked with an IPC descriptor.
+if (process.send)
+  process.on("message", (message) => {
+    if (message?.type === "shutdown") void stop();
+  });
 for (const child of children)
   child.on("exit", (code) => {
     if (!stopping) void stop(code ?? 1);
