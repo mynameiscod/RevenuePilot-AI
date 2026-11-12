@@ -1,0 +1,1683 @@
+{
+  "description": "Generated from executable Zod request schemas. Custom cross-field/BigInt/origin refinements remain authoritative in TypeScript and API.md.",
+  "schemas": {
+    "browserEventInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "eventId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "sessionId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "anonymousId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\/[^?#]*$"
+            },
+            "consent": {
+              "type": "string",
+              "const": "granted"
+            },
+            "type": {
+              "type": "string",
+              "const": "page.viewed.v1"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "eventId",
+            "occurredAt",
+            "sessionId",
+            "anonymousId",
+            "path",
+            "consent",
+            "type",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eventId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "sessionId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "anonymousId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\/[^?#]*$"
+            },
+            "consent": {
+              "type": "string",
+              "const": "granted"
+            },
+            "type": {
+              "type": "string",
+              "const": "form.viewed.v1"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "formId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                }
+              },
+              "required": [
+                "formId",
+                "attemptId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "eventId",
+            "occurredAt",
+            "sessionId",
+            "anonymousId",
+            "path",
+            "consent",
+            "type",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eventId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "sessionId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "anonymousId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\/[^?#]*$"
+            },
+            "consent": {
+              "type": "string",
+              "const": "granted"
+            },
+            "type": {
+              "type": "string",
+              "const": "form.started.v1"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "formId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                }
+              },
+              "required": [
+                "formId",
+                "attemptId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "eventId",
+            "occurredAt",
+            "sessionId",
+            "anonymousId",
+            "path",
+            "consent",
+            "type",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eventId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "occurredAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "sessionId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "anonymousId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+            },
+            "path": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^\\/[^?#]*$"
+            },
+            "consent": {
+              "type": "string",
+              "const": "granted"
+            },
+            "type": {
+              "type": "string",
+              "const": "form.submitted.v1"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "formId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                }
+              },
+              "required": [
+                "formId",
+                "attemptId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "eventId",
+            "occurredAt",
+            "sessionId",
+            "anonymousId",
+            "path",
+            "consent",
+            "type",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "collectInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "siteKey": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 100
+        },
+        "events": {
+          "minItems": 1,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "anonymousId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^\\/[^?#]*$"
+                  },
+                  "consent": {
+                    "type": "string",
+                    "const": "granted"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "page.viewed.v1"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "eventId",
+                  "occurredAt",
+                  "sessionId",
+                  "anonymousId",
+                  "path",
+                  "consent",
+                  "type",
+                  "payload"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "anonymousId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^\\/[^?#]*$"
+                  },
+                  "consent": {
+                    "type": "string",
+                    "const": "granted"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "form.viewed.v1"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "formId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      },
+                      "attemptId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      }
+                    },
+                    "required": [
+                      "formId",
+                      "attemptId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "eventId",
+                  "occurredAt",
+                  "sessionId",
+                  "anonymousId",
+                  "path",
+                  "consent",
+                  "type",
+                  "payload"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "anonymousId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^\\/[^?#]*$"
+                  },
+                  "consent": {
+                    "type": "string",
+                    "const": "granted"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "form.started.v1"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "formId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      },
+                      "attemptId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      }
+                    },
+                    "required": [
+                      "formId",
+                      "attemptId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "eventId",
+                  "occurredAt",
+                  "sessionId",
+                  "anonymousId",
+                  "path",
+                  "consent",
+                  "type",
+                  "payload"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "anonymousId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^\\/[^?#]*$"
+                  },
+                  "consent": {
+                    "type": "string",
+                    "const": "granted"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "form.submitted.v1"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "formId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      },
+                      "attemptId": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+                      }
+                    },
+                    "required": [
+                      "formId",
+                      "attemptId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "eventId",
+                  "occurredAt",
+                  "sessionId",
+                  "anonymousId",
+                  "path",
+                  "consent",
+                  "type",
+                  "payload"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "siteKey",
+        "events"
+      ],
+      "additionalProperties": false
+    },
+    "connectionInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "accountId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 150
+        },
+        "credentials": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        }
+      },
+      "required": [
+        "provider",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "identifier": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+    },
+    "leadInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254,
+              "format": "email",
+              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            {
+              "type": "string",
+              "const": ""
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\+?[0-9 ()-]{7,25}$"
+            },
+            {
+              "type": "string",
+              "const": ""
+            }
+          ]
+        },
+        "course": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "Meta Ads",
+            "Google Ads",
+            "YouTube Ads",
+            "Organic",
+            "Referral",
+            "Direct",
+            "Other"
+          ]
+        },
+        "campaign": {
+          "default": "",
+          "type": "string",
+          "maxLength": 120
+        },
+        "note": {
+          "default": "",
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "name",
+        "course",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "loginInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 254,
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^\\d{6}$"
+        },
+        "recoveryCode": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9-]{20,24}$"
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ],
+      "additionalProperties": false
+    },
+    "moneyMinor": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string",
+      "pattern": "^[1-9]\\d{0,15}$"
+    },
+    "receiptInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "leadId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "capture",
+            "refund"
+          ]
+        },
+        "amountMinor": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{0,15}$"
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "INR",
+            "USD",
+            "AED"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "originalReceiptId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "leadId",
+        "kind",
+        "amountMinor",
+        "currency",
+        "reference",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "registrationInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254,
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 128
+        },
+        "workspaceName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "password",
+        "workspaceName"
+      ],
+      "additionalProperties": false
+    },
+    "settingsInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "timezone": {
+          "type": "string",
+          "enum": [
+            "Asia/Kolkata",
+            "Asia/Dubai",
+            "America/New_York",
+            "UTC"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "INR",
+            "USD",
+            "AED"
+          ]
+        },
+        "firstResponseMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "attributionModel": {
+          "type": "string",
+          "enum": [
+            "first_touch",
+            "last_touch",
+            "linear"
+          ]
+        },
+        "retentionDays": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 365
+        }
+      },
+      "required": [
+        "name",
+        "timezone",
+        "currency",
+        "firstResponseMinutes",
+        "attributionModel"
+      ],
+      "additionalProperties": false
+    },
+    "siteInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "origins": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "origins"
+      ],
+      "additionalProperties": false
+    },
+    "stageInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "stage": {
+          "type": "string",
+          "enum": [
+            "new",
+            "contacting",
+            "qualified",
+            "demo",
+            "enrolled",
+            "lost"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1000
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "stage",
+        "note",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "canonicalContact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254,
+              "format": "email",
+              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            {
+              "type": "string",
+              "const": ""
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\+?[0-9 ()-]{7,25}$"
+            },
+            {
+              "type": "string",
+              "const": ""
+            }
+          ]
+        },
+        "course": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "Meta Ads",
+            "Google Ads",
+            "YouTube Ads",
+            "Organic",
+            "Referral",
+            "Direct",
+            "Other"
+          ]
+        },
+        "campaign": {
+          "default": "",
+          "type": "string",
+          "maxLength": 120
+        },
+        "note": {
+          "default": "",
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "name",
+        "course",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "contactInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "answered",
+            "no_answer",
+            "unreachable",
+            "wrong_number",
+            "not_interested"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        },
+        "nextFollowupAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+        }
+      },
+      "required": [
+        "outcome",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "demoInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+        },
+        "durationMinutes": {
+          "default": 30,
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 120
+        }
+      },
+      "required": [
+        "hostId",
+        "scheduledAt"
+      ],
+      "additionalProperties": false
+    },
+    "demoOutcomeInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "attended",
+            "no_show",
+            "cancelled"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "interested",
+            "not_interested",
+            "follow_up",
+            "not_applicable"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "status",
+        "outcome",
+        "note",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "formEventInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "anonymousId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "viewed",
+            "started",
+            "submitted"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^\\/[^?#]*$"
+        },
+        "trackingConsent": {
+          "type": "boolean",
+          "const": true
+        },
+        "touch": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "default": "Direct",
+              "type": "string",
+              "maxLength": 80
+            },
+            "medium": {
+              "default": "",
+              "type": "string",
+              "maxLength": 80
+            },
+            "campaign": {
+              "default": "",
+              "type": "string",
+              "maxLength": 120
+            },
+            "accountId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "campaignId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "adId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "clickIds": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "gclid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "fbclid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "gbraid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "wbraid": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "attemptId",
+        "anonymousId",
+        "type",
+        "path",
+        "trackingConsent",
+        "touch"
+      ],
+      "additionalProperties": false
+    },
+    "formInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "course": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "amountMinor": {
+          "type": "string",
+          "pattern": "^[1-9]\\d{0,15}$"
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "INR",
+            "USD",
+            "AED"
+          ]
+        },
+        "origins": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "assignees": {
+          "default": [],
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+          }
+        },
+        "consentVersion": {
+          "default": "1",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        }
+      },
+      "required": [
+        "name",
+        "course",
+        "amountMinor",
+        "currency",
+        "origins"
+      ],
+      "additionalProperties": false
+    },
+    "submissionInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "anonymousId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254,
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{7,14}$"
+            },
+            {
+              "type": "string",
+              "const": ""
+            }
+          ]
+        },
+        "privacyConsent": {
+          "type": "boolean",
+          "const": true
+        },
+        "marketingConsent": {
+          "type": "boolean"
+        },
+        "trackingConsent": {
+          "type": "boolean"
+        },
+        "adConsent": {
+          "default": false,
+          "type": "boolean"
+        },
+        "consentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "touch": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "default": "Direct",
+              "type": "string",
+              "maxLength": 80
+            },
+            "medium": {
+              "default": "",
+              "type": "string",
+              "maxLength": 80
+            },
+            "campaign": {
+              "default": "",
+              "type": "string",
+              "maxLength": 120
+            },
+            "accountId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "campaignId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "adId": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            },
+            "clickIds": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "gclid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "fbclid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "gbraid": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "wbraid": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "website": {
+          "default": "",
+          "type": "string",
+          "maxLength": 0
+        }
+      },
+      "required": [
+        "attemptId",
+        "anonymousId",
+        "name",
+        "email",
+        "privacyConsent",
+        "marketingConsent",
+        "trackingConsent",
+        "consentVersion"
+      ],
+      "additionalProperties": false
+    },
+    "touchInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "source": {
+          "default": "Direct",
+          "type": "string",
+          "maxLength": 80
+        },
+        "medium": {
+          "default": "",
+          "type": "string",
+          "maxLength": 80
+        },
+        "campaign": {
+          "default": "",
+          "type": "string",
+          "maxLength": 120
+        },
+        "accountId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100
+        },
+        "campaignId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100
+        },
+        "adId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100
+        },
+        "clickIds": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "gclid": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "fbclid": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "gbraid": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "wbraid": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_meta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "apiVersion": {
+          "type": "string",
+          "pattern": "^v\\d{2}\\.0$"
+        },
+        "adAccountId": {
+          "type": "string",
+          "pattern": "^act_\\d+$"
+        },
+        "pixelId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "testEventCode": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "leadFormId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "importFormId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,150}$"
+        }
+      },
+      "required": [
+        "apiVersion",
+        "adAccountId"
+      ],
+      "additionalProperties": false
+    },
+    "provider_google_ads": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "apiVersion": {
+          "default": "v26",
+          "type": "string",
+          "pattern": "^v\\d{2}$"
+        },
+        "customerId": {
+          "type": "string",
+          "pattern": "^\\d{10}$"
+        },
+        "loginCustomerId": {
+          "type": "string",
+          "pattern": "^\\d{10}$"
+        },
+        "conversionActionId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        }
+      },
+      "required": [
+        "customerId"
+      ],
+      "additionalProperties": false
+    },
+    "provider_hubspot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "importFormId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,150}$"
+        }
+      },
+      "required": [
+        "importFormId"
+      ],
+      "additionalProperties": false
+    },
+    "provider_generic_crm": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "importFormId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,150}$"
+        }
+      },
+      "required": [
+        "importFormId"
+      ],
+      "additionalProperties": false
+    },
+    "provider_outpero": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "leadIntakeUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "leadIntakeUrl"
+      ],
+      "additionalProperties": false
+    },
+    "provider_stripe": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_razorpay": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "additionalProperties": false
+    },
+    "provider_openai": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,150}$"
+        },
+        "maxOutputTokens": {
+          "default": 800,
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 2048
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "provider_anthropic": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,150}$"
+        },
+        "maxOutputTokens": {
+          "default": 800,
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 2048
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "provider_whatsapp": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "apiVersion": {
+          "type": "string",
+          "pattern": "^v\\d{2}\\.0$"
+        },
+        "phoneNumberId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "wabaId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "templateName": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,100}$"
+        },
+        "languageCode": {
+          "default": "en",
+          "type": "string",
+          "pattern": "^[a-z]{2}(_[A-Z]{2})?$"
+        },
+        "templateBody": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "phoneNumberId",
+        "wabaId",
+        "templateName",
+        "templateBody"
+      ],
+      "additionalProperties": false
+    },
+    "provider_ses": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "dailyActionLimit": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[a-z]{2}-[a-z]+-\\d$"
+        },
+        "snsTopicArn": {
+          "type": "string",
+          "pattern": "^arn:aws:sns:[a-z0-9-]+:\\d{12}:[A-Za-z0-9_-]+$"
+        },
+        "fromEmail": {
+          "type": "string",
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        }
+      },
+      "required": [
+        "region",
+        "fromEmail",
+        "subject",
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

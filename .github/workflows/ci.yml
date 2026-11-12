@@ -31,3 +31,27 @@ jobs:
         if: runner.os == 'Linux'
         env:
           DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+  docker-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      - run: docker compose up -d --build --wait --wait-timeout 180
+      - run: node scripts/smoke-stack.mjs
+      - name: Verify an isolated backup and restore
+        run: |
+          docker compose exec -T mongo mongodump --db revenuepilot --archive --gzip > /tmp/rp-ci.archive.gz
+          docker compose exec -T mongo mongorestore --archive --gzip --nsFrom='revenuepilot.*' --nsTo='rp_restore_check.*' < /tmp/rp-ci.archive.gz
+          docker compose exec -T mongo mongosh --quiet --eval "const s=db.getSiblingDB('revenuepilot'); const r=db.getSiblingDB('rp_restore_check'); for (const name of s.getCollectionNames().filter(n=>n!=='rate_buckets')) { if(s.getCollection(name).countDocuments({}) !== r.getCollection(name).countDocuments({})) throw new Error('Restore count mismatch: '+name); } print('Isolated restore verified');"
+      - name: Container diagnostics
+        if: failure()
+        run: docker compose logs --tail=100
+      - name: Remove isolated CI resources
+        if: always()
+        run: docker compose down --volumes

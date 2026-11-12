@@ -1,41 +1,46 @@
-# Acceptance and verification
+# Acceptance plan and verification record
 
-## Automated local checks
+## Automated acceptance
 
-The suite uses a disposable **real MongoDB replica set**, not a mocked collection layer. The database is created solely for the tests. Shared startup options use MongoDB 7.0.48 and pass `--nounixsocket` only on Unix platforms; Windows must not receive that unsupported flag. No sandbox protection is disabled.
+| Area                | Required behavior                                                                                                                                                       | Tests / checks                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Startup             | Actual dev:demo process starts MongoDB/API/Vite on Linux and Windows; both local hostnames work                                                                         | demo-startup.test.ts, origins.test.ts                |
+| Isolation           | Foreign tenant paths/IDs/headers, revoked membership, counselor scope and PII search cannot broaden access                                                              | api.test.ts, accounts-integrations.test.ts           |
+| Sessions            | HttpOnly cookie, CSRF/exact origins, logout, hashed tokens, MFA replay and single-use recovery                                                                          | api/origins/security/accounts-integrations tests     |
+| Accounts            | Single-use verification/reset; generic recovery; reset revokes sessions and preserves MFA; invite email binding; last owner retained                                    | accounts-integrations.test.ts                        |
+| Acquisition         | Strict input and exact origins; no telemetry-created lead; duplicate/repeated enquiries safe; no unconsented touch; quotas atomic                                       | journey.test.ts                                      |
+| Sales               | Contact evidence, follow-up assignment, qualification, host overlap prevention, no future attendance, version conflict                                                  | journey.test.ts                                      |
+| Money               | One concurrent capture/enrollment; repeat enquiry cannot duplicate offer order; tampered amount denied; cumulative refunds and stale refund events safe                 | api.test.ts, journey.test.ts                         |
+| Attribution         | Exact minor-unit conservation first/last/linear, cumulative refund allocation, duplicate account spend dedupe, no test cash in live ROAS                                | journey.test.ts                                      |
+| Webhooks            | Raw HMAC verification, timestamp replay rejection, same-event dedupe/conflicting replay refusal, durable projection once                                                | journey/providers/accounts-integrations tests        |
+| Actions             | Consent required before creation/approval/execution; config version binding; foreign preview denied; test AI never calls network; expired work unknown                  | accounts-integrations.test.ts                        |
+| Provider boundaries | Destination/redirect guard, Google validation, Meta hashed IDs, structured AI/redaction, WhatsApp changed-template refusal, Outpero correlation, Razorpay link mismatch | providers.test.ts; synthetic transport fixtures only |
+| Billing             | Server current paid invoice required; wrong tenant metadata rejected; replacement/late old subscription events safe                                                     | billing.test.ts; provider reads mocked               |
+| Privacy             | Retention removes call content; password required for erase; encrypted transcript erased; self-service withdrawal cancels queued work                                   | accounts-integrations.test.ts, journey.test.ts       |
+| SDK                 | No tracking before consent, safe paths/allowlisted tags, bounded queue/retries, stable attempt IDs                                                                      | sdk.test.ts, providers.test.ts                       |
+| Built stack         | Nginx/API/collector, MongoDB, Redis and BullMQ process a complete synthetic journey plus signed CRM webhook                                                             | scripts/smoke-stack.mjs via docker-stack CI          |
+| Restore             | Quiescent CI database archived and restored into separate namespace; durable collection counts match                                                                    | docker-stack CI, excludes volatile rate buckets      |
 
-| Area            | Acceptance condition                                                                                                           | Coverage                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| Tenant boundary | Other tenant paths, objects and forged tenant headers cannot disclose/mutate records                                           | API test                             |
-| RBAC            | Analyst/viewer contact masking; counselor assignee restriction; revoked membership loses access                                | API/domain tests                     |
-| Session/CSRF    | Missing CSRF or wrong Origin fails; logout invalidates cookie session                                                          | API tests                            |
-| Atomic writes   | Lead mutation, audit and outbox commit together                                                                                | API test                             |
-| Idempotency     | Replay produces one business record; changed body with same key conflicts                                                      | API tests                            |
-| Stage conflicts | Stale version fails; stage update does not imply contact                                                                       | API test                             |
-| Timeline replay | Reprocessing same outbox creates one event                                                                                     | Real database worker projection test |
-| Money           | Invalid decimal rejected; captures deduped; wrong-tenant/currency refund rejected; concurrent refunds cannot exceed capture    | API/domain tests                     |
-| Secret boundary | Wrong-tenant decrypt fails; randomized cipher; no credentials in connection DTO                                                | Domain/API tests                     |
-| MFA             | Known algorithm vector; enrollment/login/replay handling                                                                       | Domain/API tests                     |
-| Collector       | Consented allowed origin accepted; duplicate acknowledged; forged financial/extra-field events rejected                        | API/schema tests                     |
-| SDK             | No sending before consent; query/fragment excluded; withdrawal rotates identity; rate-limit retry preserves IDs; queue bounded | SDK tests                            |
-| Adapter safety  | All eleven providers configuration-only; unsupported execution fails explicitly                                                | Domain/API tests                     |
+Run `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=dev --audit-level=high`. All unit/API tests use synthetic contacts and either a real temporary MongoDB replica set or explicit provider transport mocks. No test calls a real AI/calling/message/payment account.
 
-Run `npm run typecheck`, `npm test`, `npm run build` and `npm audit --omit=dev`. The original foundation passed 27 tests. The current 33-test suite includes a process startup smoke test and five origin-policy regressions. The smoke test launches the actual demo command, waits for MongoDB/API/Vite, signs in through the frontend proxy using both local hostnames and checks the 48 seeded leads. The origin tests cover matching CORS, local aliases, different schemes/ports, lookalike hosts, missing/opaque origins, strict production handling, forwarding-header spoofing and invalid configuration. Authenticated mutation tests retain CSRF enforcement for both local aliases. CI runs on Linux with Node 24.22.1 and Windows with Node 24.11.0; consult the current commit's CI result for execution status. Production dependency audit reported zero known vulnerabilities at the time of implementation; future advisories can change that result.
+CI verifies Linux Node24.22.1 and Windows Node24.11.0, plus the actual Docker stack on Ubuntu. Consult the current commit's [Actions result](https://github.com/mynameiscod/RevenuePilot-AI/actions) for authoritative execution status. CI creates only disposable test containers; it does not deploy the product.
 
-## Browser verification performed
+## Browser verification during implementation
 
-- Entered the local synthetic demo; inspected sign-in and dashboard layouts.
-- Created `QA Sample Lead` with an `example.test` address; opened its stored detail view.
-- Confirmed the outbox-generated enquiry event, changed stage to Qualified and observed its note in the timeline.
-- Confirmed stage change left “No attempt recorded” unchanged.
-- Switched to empty Northstar Studio and observed zero leads/cash in USD; switched back to CodeBegun and observed its distinct data.
-- Inspected the provider screen and verified clear draft/inactive labels and six categories.
-- Saved `docs/screenshots/dashboard.jpg` from the running application after these actions.
+Desktop Chromium local demo:
 
-## Explicitly not verified here
+- Entered the synthetic workspace using **Explore sample workspace**; observed 48 seeded leads and zero live connections.
+- Opened the hosted CodeBegun form, granted measurement only, submitted a synthetic enquiry and received its confirmation.
+- Observed the assigned work-queue task, recorded a connected conversation, scheduled a demo and recorded attendance after its start.
+- Simulated a successful payment and observed a sandbox receipt plus enrollment. Simulated full refund and observed refunded order and enrollment review requirement.
+- Observed report milestones and separate manual/sandbox revenue; no imported live spend or fabricated ROAS.
 
-- Full Docker build/start/stop, Redis delivery/failover and image scanning: Docker/Redis server were unavailable in the implementation runtime. The worker projection itself was tested against MongoDB; the demo uses a direct projection loop.
-- Live provider OAuth, webhooks, calls, messages, AI inference or payments: no adapters are active.
-- Production deployment, sustained load, backup restore, full mobile-device matrix, screen-reader audit or independent penetration testing.
+- Verified integration controls, team/seats/billing configuration status and saving workspace preferences.
 
-CI performs source checks and Compose syntax validation; it does not deploy. Full stack smoke tests must be added/run before claiming container operational readiness.
+Local release checks: 66 tests pass across 9 files; TypeScript and production build pass; production dependency audit reports zero vulnerabilities. The [dashboard screenshot](screenshots/journey-verified.jpg) records the synthetic walkthrough. Screenshots are implementation evidence, not a claim that real provider accounts are connected. The current cloud browser does not expose a supported viewport-resize API; a physical/narrow-device mobile pass remains a release gate.
+
+## External acceptance before live operation
+
+For each chosen provider, use its actual sandbox/test account to verify scopes/account identity, real pagination/event shape, rate limits, revocation, signatures and duplicate/reordered events. Test payment failure, asynchronous confirmation, refunds and provider timeouts. Reconcile ad import totals against the provider and record missing coverage. Verify WhatsApp template/body/phone mapping, SES domain/SNS subscription, and Outpero lead intake/correlation/signature mapping. Confirm actual email delivery for account recovery and SaaS invoice/entitlement transitions with configured server price IDs.
+
+Load/chaos testing, production restore measurements, security review, monitoring thresholds, image scans/digest pins and production deployment are not certified by these local tests. No claim of 100% identity coverage, causal ad attribution, bank settlement, delivery, or paid conversions is made without the corresponding evidence.

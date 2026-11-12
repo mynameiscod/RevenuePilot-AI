@@ -85,37 +85,12 @@ import {
   TrendChart,
 } from "./components";
 
-type WorkspaceContext = {
-  session: SessionView;
-  tenant: TenantView;
-  prefix: string;
-  refresh: () => void;
-  revision: number;
-  updateSession: (s: SessionView) => void;
-  notify: (s: string) => void;
-};
-const Context = createContext<WorkspaceContext>(null!);
-const useWorkspace = () => useContext(Context);
-function useLoad<T>(path: string) {
-  const { prefix, revision } = useWorkspace();
-  const [state, setState] = useState<{
-    data?: T;
-    error?: string;
-    loading: boolean;
-  }>({ loading: true });
-  useEffect(() => {
-    const abort = new AbortController();
-    setState({ loading: true });
-    api<T>(prefix + path, { signal: abort.signal })
-      .then((data) => setState({ data, loading: false }))
-      .catch((e) => {
-        if (e.name !== "AbortError")
-          setState({ error: e.message, loading: false });
-      });
-    return () => abort.abort();
-  }, [prefix, path, revision]);
-  return state;
-}
+import {
+  Context,
+  useWorkspace,
+  useLoad,
+  type WorkspaceContext,
+} from "./workspace";
 const formValues = (e: FormEvent<HTMLFormElement>) =>
   Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<
     string,
@@ -124,7 +99,25 @@ const formValues = (e: FormEvent<HTMLFormElement>) =>
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : "Unable to complete the request.";
 
+import {
+  PublicEnquiry,
+  PublicCheckout,
+  PaymentReturn,
+  AccountLink,
+  ForgotPassword,
+} from "./journey/Public";
+import {
+  IntakeForms,
+  FormPayment,
+  WorkQueue,
+  FlowReport,
+  LeadWorkflow,
+} from "./journey/Workspace";
+import { Operations } from "./journey/Operations";
+import { AccountSettings } from "./journey/Account";
+
 export function App() {
+  const location = useLocation();
   const [session, setSession] = useState<SessionView | null>(null),
     [loading, setLoading] = useState(true),
     [bootError, setBootError] = useState("");
@@ -141,6 +134,23 @@ export function App() {
       })
       .finally(() => setLoading(false));
   }, []);
+  if (
+    /^\/(enquire|checkout|payment-return|forgot-password|account\/)/.test(
+      location.pathname,
+    )
+  )
+    return (
+      <Routes>
+        <Route path="/enquire/:publicKey" element={<PublicEnquiry />} />
+        <Route path="/checkout" element={<PublicCheckout />} />
+        <Route path="/payment-return" element={<PaymentReturn />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/account/:action"
+          element={<AccountLink signedIn={!!session} />}
+        />
+      </Routes>
+    );
   if (loading)
     return (
       <div className="boot">
@@ -172,6 +182,7 @@ function Auth({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(bootError),
     [mfa, setMfa] = useState(false),
+    [recovery, setRecovery] = useState(false),
     [config, setConfig] = useState({ demo: false, registration: false });
   useEffect(() => {
     api<typeof config>("/public/config")
@@ -301,13 +312,17 @@ function Auth({
               />
             </Field>
             {mfa && (
-              <Field label="Authenticator code">
+              <Field
+                label={
+                  recovery ? "Single-use recovery code" : "Authenticator code"
+                }
+              >
                 <input
-                  name="code"
+                  name={recovery ? "recoveryCode" : "code"}
                   className="form-control"
-                  pattern="[0-9]{6}"
+                  pattern={recovery ? "[A-Fa-f0-9-]{20,24}" : "[0-9]{6}"}
                   autoComplete="one-time-code"
-                  inputMode="numeric"
+                  inputMode={recovery ? "text" : "numeric"}
                   required
                   autoFocus
                 />
@@ -322,6 +337,21 @@ function Auth({
               <ArrowRight size={17} />
             </button>
           </form>
+          {!register && (
+            <div className="d-flex justify-content-between mt-3">
+              <Link className="small-note" to="/forgot-password">
+                Forgot password?
+              </Link>
+              {mfa && (
+                <button
+                  className="btn btn-link btn-sm"
+                  onClick={() => setRecovery(!recovery)}
+                >
+                  {recovery ? "Use authenticator code" : "Use recovery code"}
+                </button>
+              )}
+            </div>
+          )}
           {config.registration && (
             <div className="auth-switch">
               {register ? "Already have an account?" : "New to RevenuePilot?"}{" "}
@@ -394,6 +424,14 @@ function Shell({
     { path: "/", label: "Overview", icon: LayoutDashboard },
     { path: "/journeys", label: "Lead journeys", icon: GitBranch },
     { path: "/leads", label: "Leads", icon: Users },
+    { path: "/work", label: "Work queue", icon: CalendarDays },
+    { path: "/flow", label: "Journey & attribution", icon: BarChart3 },
+    {
+      path: "/intake",
+      label: "Intake forms",
+      icon: Target,
+      permission: "settings.write",
+    },
     {
       path: "/revenue",
       label: "Revenue",
@@ -401,6 +439,18 @@ function Shell({
       permission: "revenue.read",
     },
     { path: "/connections", label: "Connections", icon: Unplug },
+    {
+      path: "/operations",
+      label: "Integration controls",
+      icon: Activity,
+      permission: "connections.write",
+    },
+    {
+      path: "/account-settings",
+      label: "Team & account",
+      icon: ShieldCheck,
+      permission: "settings.write",
+    },
   ];
   const title =
     nav.find((n) => n.path !== "/" && location.pathname.startsWith(n.path))
@@ -477,7 +527,9 @@ function Shell({
                   {tenant.demo ? "Demo workspace" : "Independent workspace"}
                 </strong>
                 <small>
-                  {tenant.demo ? "Sample data only" : "No external sync active"}
+                  {tenant.demo
+                    ? "Sample data only"
+                    : "Tenant-isolated workspace"}
                 </small>
               </div>
             </div>
@@ -576,6 +628,14 @@ function Shell({
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:leadId" element={<LeadDetail />} />
               <Route
+                path="/leads/:leadId/workflow"
+                element={<LeadWorkflow />}
+              />
+              <Route path="/work" element={<WorkQueue />} />
+              <Route path="/flow" element={<FlowReport />} />
+              <Route path="/intake" element={<IntakeForms />} />
+              <Route path="/intake/:formId" element={<FormPayment />} />
+              <Route
                 path="/revenue"
                 element={
                   can(tenant.role, "revenue.read") ? (
@@ -589,6 +649,8 @@ function Shell({
                 }
               />
               <Route path="/connections" element={<Connections />} />
+              <Route path="/operations" element={<Operations />} />
+              <Route path="/account-settings" element={<AccountSettings />} />
               <Route
                 path="/settings"
                 element={
@@ -617,7 +679,7 @@ function Shell({
               <span>
                 {tenant.demo
                   ? "Synthetic data · Demo environment"
-                  : "Foundation release · External sync not active"}
+                  : "Independent workspace · Provider activity is explicit"}
                 <span className="footer-dot">·</span>
                 {tenant.timezone}
               </span>
@@ -648,9 +710,8 @@ function Shell({
             <div className="info-strip">
               <ShieldCheck size={19} />
               <span>
-                This foundation release does not contact external systems.
-                Provider connections remain drafts until their adapters are
-                implemented and certified.
+                Check and activate providers in Integration controls. Live
+                actions require configured credentials, consent and approval.
               </span>
             </div>
             <ul className="plain-list">
@@ -661,8 +722,9 @@ function Shell({
                 Timeline events are processed by the durable outbox worker.
               </li>
               <li>
-                Source-linked cash is based on recorded lead sources. Ad spend
-                and causal attribution are not available yet.
+                Journey & attribution combines recorded touch evidence with
+                imported advertising spend. Attribution does not establish
+                causation.
               </li>
             </ul>
             <a
@@ -809,7 +871,9 @@ function OverviewPage() {
               }
               detail={
                 can(tenant.role, "revenue.read")
-                  ? "Recorded receipts less refunds"
+                  ? tenant.demo
+                    ? "Synthetic receipts less refunds"
+                    : "Manual + verified cash; excludes test payments"
                   : "Finance permission required"
               }
               icon={<Wallet size={18} />}
@@ -1111,8 +1175,8 @@ function Journeys() {
               </div>
               <p className="small-note">
                 The current target is {tenant.firstResponseMinutes} elapsed
-                minutes. Business-hour calendars and provider call evidence are
-                later milestones.
+                minutes. Work queue shows follow-ups and demos; each lead’s
+                workflow contains provider call evidence.
               </p>
               <Link to="/leads?stage=new" className="btn btn-outline-primary">
                 Open first-touch queue
@@ -1476,6 +1540,12 @@ function LeadDetail() {
         title={lead.name}
         text={`${lead.course} · Enquiry received ${dateLabel(lead.createdAt, tenant.timezone)}`}
       >
+        <Link
+          to={`/leads/${leadId}/workflow`}
+          className="btn btn-outline-secondary"
+        >
+          Open connected journey <ArrowRight size={15} />
+        </Link>
         <StageBadge stage={lead.stage} />
         {can(tenant.role, "leads.write") && (
           <button
@@ -1680,7 +1750,11 @@ function Revenue() {
                   ? "—"
                   : formatMoney("0", tenant.currency)
           }
-          detail="Manual records · provider reconciliation pending"
+          detail={
+            tenant.demo
+              ? "Synthetic sample receipts"
+              : "Manual + provider-verified; excludes test payments"
+          }
           icon={<ArrowDownLeft size={18} />}
         />
         <Metric
@@ -1716,8 +1790,9 @@ function Revenue() {
       <div className="info-strip">
         <ShieldCheck size={19} />
         <span>
-          These are recorded cash receipts, not gateway-verified settlement or
-          accounting revenue. Course enrollment is tracked independently.
+          Evidence labels distinguish manual entries, sandbox simulations,
+          provider tests and verified payments. Net cash is not accounting
+          revenue. Journey & attribution separates every evidence type.
         </span>
       </div>
       <section className="panel">
@@ -1756,7 +1831,9 @@ function Revenue() {
                     <tr key={r.id}>
                       <td className="reference-cell">
                         {r.reference}
-                        <small className="cell-note">Manual evidence</small>
+                        <small className="cell-note">
+                          {r.evidence.replaceAll("_", " ")}
+                        </small>
                       </td>
                       <td>
                         <Link className="table-link" to={`/leads/${r.leadId}`}>
@@ -2019,9 +2096,8 @@ function Connections() {
       <div className="info-strip">
         <Unplug size={19} />
         <span>
-          Provider adapters are being built. Configurations are encrypted
-          drafts; no data sync, messages, calls or payment actions run in this
-          release.
+          Connections start as encrypted drafts. Open integration controls to
+          configure, check and activate them. Outbound actions require approval.
         </span>
       </div>
       <div
@@ -2049,7 +2125,15 @@ function Connections() {
             <section className="panel connection-drafts">
               <div className="panel-heading">
                 <h2>Saved configurations</h2>
-                <span className="subtle-badge">{data.items.length} drafts</span>
+                <Link
+                  to="/operations"
+                  className="btn btn-sm btn-outline-secondary"
+                >
+                  Integration controls
+                </Link>
+                <span className="subtle-badge">
+                  {data.items.length} connections
+                </span>
               </div>
               {data.items.map((c) => (
                 <div className="draft-row" key={c.id}>
@@ -2070,7 +2154,7 @@ function Connections() {
                       {c.accountId || "Account not selected"}
                     </small>
                   </div>
-                  <span className="draft-status">Draft · inactive</span>
+                  <span className="draft-status">{c.status}</span>
                   {can(tenant.role, "connections.write") && (
                     <button
                       className="icon-button"
@@ -2113,7 +2197,7 @@ function Connections() {
                   <div className="provider-footer">
                     <span>
                       <span className="muted-dot" />
-                      Configuration only
+                      Adapter available
                     </span>
                     <button
                       className="btn btn-sm btn-outline-secondary"
@@ -2242,8 +2326,8 @@ function ConnectionForm({
         ))}
         {provider.credentialFields.length === 0 && (
           <div className="info-strip">
-            Authorization will be implemented with the provider adapter. No
-            credentials are required for this draft.
+            Complete provider configuration in Integration controls after saving
+            this draft.
           </div>
         )}
         <div className="form-footer">
@@ -2282,6 +2366,7 @@ function WorkspaceSettings({ newWorkspace }: { newWorkspace: () => void }) {
           {
             ...fields,
             firstResponseMinutes: Number(fields.firstResponseMinutes),
+            retentionDays: Number(fields.retentionDays),
             attributionModel: tenant.attributionModel,
           },
           "PUT",
@@ -2384,9 +2469,24 @@ function WorkspaceSettings({ newWorkspace }: { newWorkspace: () => void }) {
                   required
                 />
               </Field>
+              <Field
+                label="Sensitive activity retention (days)"
+                hint="Call text, form telemetry and processed action content are removed after this period. Financial evidence is retained."
+              >
+                <input
+                  className="form-control"
+                  name="retentionDays"
+                  type="number"
+                  min={30}
+                  max={365}
+                  defaultValue={tenant.retentionDays}
+                  required
+                />
+              </Field>
               <div className="info-strip">
-                Current cash reports use the lead’s recorded source. Multi-touch
-                attribution and ad spend reconciliation are planned separately.
+                The Overview shows cash by recorded source. Journey &
+                attribution compares first-touch, last-touch and linear
+                attribution with observed provider spend.
               </div>
               <button className="btn btn-primary" disabled={busy}>
                 {busy ? "Saving…" : "Save preferences"}
@@ -2408,6 +2508,7 @@ function Security() {
   const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(
       null,
     ),
+    [recoveryCodes, setRecoveryCodes] = useState<string[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function start(e: FormEvent<HTMLFormElement>) {
@@ -2427,7 +2528,11 @@ function Security() {
     setBusy(true);
     setError("");
     try {
-      await mutate("/auth/mfa/confirm", formValues(e));
+      const confirmation = await mutate<{ recoveryCodes: string[] }>(
+        "/auth/mfa/confirm",
+        formValues(e),
+      );
+      setRecoveryCodes(confirmation.recoveryCodes);
       setSetup(null);
       updateSession(await api<SessionView>("/auth/session"));
       notify("Two-factor authentication enabled");
@@ -2447,6 +2552,16 @@ function Security() {
         Protect your account with a time-based authenticator.
       </p>
       {error && <ErrorBox message={error} />}
+      {recoveryCodes.length > 0 && (
+        <div className="note-card">
+          <strong>Save your recovery codes now</strong>
+          <p>
+            Each code can be used once. Store them in your password manager;
+            they will not be shown again after leaving this page.
+          </p>
+          <pre className="preserve-lines">{recoveryCodes.join("\n")}</pre>
+        </div>
+      )}
       {session.user.mfaEnabled ? (
         <div className="success-box">
           <CheckCircle2 size={19} /> Authenticator protection is enabled.
@@ -2459,8 +2574,8 @@ function Security() {
           </p>
           <code className="secret-code">{setup.secret}</code>
           <p className="small-note">
-            Keep a secure backup of this secret. Self-service recovery is not
-            available in this foundation release.
+            After confirmation, save the single-use recovery codes in your
+            password manager.
           </p>
           <Field label="Six-digit verification code">
             <input

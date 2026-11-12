@@ -22,6 +22,8 @@ const user = new Schema(
     pendingMfaSecret: { type: String, select: false },
     mfaEnabled: { type: Boolean, default: false },
     lastMfaStep: { type: Number, default: -1 },
+    emailVerifiedAt: Date,
+    recoveryCodes: { type: [String], default: [], select: false },
   },
   options,
 );
@@ -37,6 +39,14 @@ export const Tenant = make(
       demo: { type: Boolean, default: false },
       firstResponseMinutes: { type: Number, default: 15 },
       attributionModel: { type: String, default: "first_touch" },
+      lockVersion: { type: Number, default: 0 },
+      plan: {
+        type: String,
+        enum: ["pilot", "growth", "scale"],
+        default: "pilot",
+      },
+      retentionDays: { type: Number, default: 90 },
+      billingStatus: { type: String, default: "trial" },
     },
     options,
   ),
@@ -75,6 +85,7 @@ const lead = new Schema(
     name: { type: String, required: true },
     contactCipher: { type: String, required: true, select: false },
     emailHash: { type: String },
+    phoneHash: { type: String },
     course: { type: String, required: true },
     channel: { type: String, required: true },
     campaign: { type: String, default: "" },
@@ -83,12 +94,16 @@ const lead = new Schema(
     version: { type: Number, default: 1 },
     lastContactAt: Date,
     note: { type: String, default: "" },
+    formId: String,
+    erasedAt: Date,
+    lossReason: String,
   },
   options,
 );
 lead.index({ tenantId: 1, createdAt: -1, _id: -1 });
 lead.index({ tenantId: 1, stage: 1, assignedTo: 1 });
 lead.index({ tenantId: 1, emailHash: 1 });
+lead.index({ tenantId: 1, phoneHash: 1 });
 export const Lead = make("Lead", lead, "leads");
 const receipt = new Schema(
   {
@@ -105,6 +120,8 @@ const receipt = new Schema(
     recordedBy: { type: String, required: true },
     channel: { type: String, required: true },
     evidence: { type: String, default: "manual_record" },
+    paymentOrderId: String,
+    providerEventId: String,
   },
   options,
 );
@@ -120,7 +137,14 @@ const connection = new Schema(
     accountId: { type: String, default: "" },
     credentialCipher: { type: String, select: false },
     credentialKeys: { type: [String], default: [] },
-    status: { type: String, enum: ["draft"], default: "draft" },
+    status: {
+      type: String,
+      enum: ["draft", "test", "active", "paused"],
+      default: "draft",
+    },
+    mode: { type: String, enum: ["test", "live"], default: "test" },
+    config: { type: Schema.Types.Mixed, default: {} },
+    health: { type: Schema.Types.Mixed, default: {} },
     version: { type: Number, default: 1 },
   },
   options,

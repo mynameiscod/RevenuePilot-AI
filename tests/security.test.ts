@@ -10,7 +10,8 @@ import {
 } from "../apps/api/src/security.ts";
 import { readConfig } from "../apps/api/src/config.ts";
 import { allocate, collectInput, can } from "../packages/core/src/contracts.ts";
-import { adapterFor, providers } from "../packages/connectors/src/index.ts";
+import { providers } from "../packages/connectors/src/index.ts";
+import { adapterFor } from "../packages/connectors/src/runtime.ts";
 
 describe("security and domain invariants", () => {
   const key = "11".repeat(32);
@@ -74,10 +75,23 @@ describe("security and domain invariants", () => {
   });
   it("never silently substitutes or activates an unsupported adapter", () => {
     expect(providers).toHaveLength(11);
-    expect(providers.every((p) => p.status === "configuration_only")).toBe(
-      true,
-    );
-    expect(() => adapterFor("meta")).toThrow(/no certified adapter/);
+    expect(providers.every((p) => p.status === "adapter_available")).toBe(true);
+    expect(() =>
+      adapterFor({
+        provider: "unknown",
+        mode: "test",
+        settings: {},
+        credentials: {},
+      }),
+    ).toThrow(/UNSUPPORTED_PROVIDER/);
+    expect(() =>
+      adapterFor({
+        provider: "meta",
+        mode: "test",
+        settings: {},
+        credentials: {},
+      }),
+    ).toThrow();
   });
   it("does not grant finance writes to a viewer or counselor", () => {
     expect(can("viewer", "revenue.write")).toBe(false);

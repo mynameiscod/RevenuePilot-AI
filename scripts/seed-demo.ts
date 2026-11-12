@@ -18,6 +18,7 @@ import {
 } from "../apps/api/src/security.ts";
 import { readConfig, type Config } from "../apps/api/src/config.ts";
 import { connectDatabase, transaction } from "../apps/api/src/db.ts";
+import { Form } from "../apps/api/src/journey/models.ts";
 import { type Stage } from "../packages/core/src/contracts.ts";
 
 export async function seedDemo(config: Config) {
@@ -38,6 +39,7 @@ export async function seedDemo(config: Config) {
           name: "Demo Admin",
           email: "demo@revenuepilot.test",
           passwordHash: hash,
+          emailVerifiedAt: new Date(),
         },
       ],
       { session, ordered: true },
@@ -61,6 +63,23 @@ export async function seedDemo(config: Config) {
         { tenantId: secondId, userId, role: "owner" },
       ],
       { session, ordered: true },
+    );
+    await Form.create(
+      [
+        {
+          tenantId,
+          publicKey: "form_codebegun_local_demo_2026",
+          name: "Java course enquiries",
+          course: "Java Full Stack",
+          amountMinor: "3500000",
+          currency: "INR",
+          origins: [config.WEB_ORIGIN],
+          ownerId: userId,
+          assignees: [userId],
+          consentVersion: "1",
+        },
+      ],
+      { session },
     );
     const names = [
       "Aarav Sharma",

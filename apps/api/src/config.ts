@@ -25,6 +25,23 @@ const schema = z.object({
   API_PORT: z.coerce.number().default(4000),
   ALLOW_REGISTRATION: z.enum(["true", "false"]).default("true"),
   REVENUEPILOT_DEMO: z.enum(["true", "false"]).default("false"),
+  ALLOW_LIVE_PROVIDERS: z.enum(["true", "false"]).default("false"),
+  ALLOW_ACCOUNT_EMAIL: z.enum(["true", "false"]).default("false"),
+  ACCOUNT_EMAIL_FROM: z.email().optional(),
+  AWS_REGION: z
+    .string()
+    .regex(/^[a-z]{2}-[a-z]+-\d$/)
+    .default("ap-south-1"),
+  BILLING_STRIPE_SECRET_KEY: z.string().optional(),
+  BILLING_STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  BILLING_PRICE_GROWTH: z
+    .string()
+    .regex(/^price_[A-Za-z0-9]+$/)
+    .optional(),
+  BILLING_PRICE_SCALE: z
+    .string()
+    .regex(/^price_[A-Za-z0-9]+$/)
+    .optional(),
 });
 export type Config = z.infer<typeof schema>;
 export function allowedWebOrigins(config: Config): Set<string> {
@@ -55,5 +72,16 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
       !result.data.WEB_ORIGIN.startsWith("https://"))
   )
     throw new Error("Production requires HTTPS and forbids demo mode.");
+  if (
+    result.data.REVENUEPILOT_DEMO === "true" &&
+    result.data.ALLOW_LIVE_PROVIDERS === "true"
+  )
+    throw new Error("Demo mode forbids live provider execution.");
+  if (
+    result.data.NODE_ENV === "production" &&
+    result.data.BILLING_STRIPE_SECRET_KEY &&
+    !/^(sk|rk)_live_/.test(result.data.BILLING_STRIPE_SECRET_KEY)
+  )
+    throw new Error("Production billing requires live Stripe credentials.");
   return result.data;
 }

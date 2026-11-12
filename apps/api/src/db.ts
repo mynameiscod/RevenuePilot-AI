@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { allModels } from "./models.ts";
+import { allJourneyModels } from "./journey/models.ts";
 export async function connectDatabase(uri: string) {
   mongoose.set("strictQuery", "throw");
   await mongoose.connect(uri, {
@@ -11,7 +12,8 @@ export async function connectDatabase(uri: string) {
     throw new Error(
       "MongoDB must run as a replica set; atomic writes cannot fall back to standalone mode.",
     );
-  for (const model of allModels) await model.createIndexes();
+  for (const model of [...allModels, ...allJourneyModels])
+    await model.createIndexes();
 }
 export const transaction = <T>(
   work: (session: mongoose.ClientSession) => Promise<T>,

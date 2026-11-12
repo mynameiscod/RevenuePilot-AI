@@ -5,6 +5,9 @@ import { readConfig } from "../../api/src/config.ts";
 import { connectDatabase } from "../../api/src/db.ts";
 import { Outbox } from "../../api/src/models.ts";
 import { projectOutbox } from "./project.ts";
+import { maintainJourney, processWebhook } from "./journey.ts";
+import { executeCommand } from "../../api/src/journey/integrations.ts";
+import { Command, Webhook } from "../../api/src/journey/models.ts";
 
 const config = readConfig();
 await connectDatabase(config.MONGODB_URI);
@@ -13,7 +16,11 @@ const queue = new Queue("revenuepilot-outbox", { connection });
 const worker = new Worker(
   "revenuepilot-outbox",
   async (job) => {
-    await projectOutbox(String(job.data.outboxId));
+    if (job.name === "command")
+      await executeCommand(String(job.data.id), config);
+    else if (job.name === "webhook")
+      await processWebhook(String(job.data.id), config);
+    else await projectOutbox(String(job.data.outboxId));
   },
   { connection, concurrency: 8 },
 );
@@ -31,6 +38,42 @@ async function dispatch() {
   if (running) return;
   running = true;
   try {
+    await maintainJourney(config);
+    const hooks = await Webhook.find({
+      status: { $in: ["received", "failed"] },
+      attempts: { $lt: 8 },
+    })
+      .limit(100)
+      .lean();
+    for (const hook of hooks)
+      await queue.add(
+        "webhook",
+        { id: hook._id },
+        {
+          jobId: `hook-${hook._id}`,
+          attempts: 8,
+          backoff: { type: "exponential", delay: 2000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    const commands = await Command.find({
+      status: "queued",
+      notBefore: { $lte: new Date() },
+    })
+      .limit(100)
+      .lean();
+    for (const command of commands)
+      await queue.add(
+        "command",
+        { id: command._id },
+        {
+          jobId: `cmd-${command._id}`,
+          attempts: 1,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
     const items = await Outbox.find({ processedAt: { $exists: false } })
       .sort({ createdAt: 1 })
       .limit(100)
@@ -63,7 +106,7 @@ async function dispatch() {
 const timer = setInterval(dispatch, 2000);
 await dispatch();
 console.log(
-  "RevenuePilot worker started. External provider execution is disabled.",
+  "RevenuePilot worker started. Provider execution follows connection activation and action approval.",
 );
 async function stop() {
   clearInterval(timer);

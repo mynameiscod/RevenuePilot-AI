@@ -53,6 +53,7 @@ import {
   randomToken,
   base32,
   totpStep,
+  digest,
 } from "./security.ts";
 import { AppError } from "./errors.ts";
 import { transaction } from "./db.ts";
@@ -66,7 +67,25 @@ import {
   overview,
 } from "./services.ts";
 import { rateLimit } from "./rate-limit.ts";
+import { Command, PaymentOrder, Webhook, SyncRun } from "./journey/models.ts";
 import { collectorRouter } from "./collector.ts";
+import { acquisitionRouter } from "./journey/acquisition.ts";
+import { journeyRouter } from "./journey/routes.ts";
+import { milestone } from "./journey/evidence.ts";
+import {
+  checkoutRouter,
+  paymentAdminRouter,
+  paymentWebhookRouter,
+} from "./journey/payments.ts";
+import {
+  publicAccountRouter,
+  sessionAccountRouter,
+  tenantAccountRouter,
+  queueAccountLink,
+} from "./journey/accounts.ts";
+import { integrationRouter } from "./journey/integrations.ts";
+import { integrationWebhookRouter } from "./journey/webhooks.ts";
+import { billingRouter, billingWebhookRouter } from "./journey/billing.ts";
 
 export function errorHandler(
   error: any,
@@ -157,8 +176,13 @@ export function createApp(config: Config) {
       res.status(503).json({ status: "not_ready" });
     }
   });
+  app.use("/api/v1/webhooks/billing", billingWebhookRouter(config));
+  app.use("/api/v1/webhooks/integrations", integrationWebhookRouter(config));
+  app.use("/api/v1/webhooks/payments", paymentWebhookRouter(config));
   app.use(express.json({ limit: "256kb" }));
   app.use("/api/v1/collect", collectorRouter());
+  app.use("/api/v1/public/forms", acquisitionRouter(config));
+  app.use("/api/v1/public/checkout", checkoutRouter(config));
   app.use(cors({ origin: [...webOrigins], credentials: true }));
   app.use(cookieParser());
   app.use("/api", (req, _res, next) => {
@@ -179,8 +203,10 @@ export function createApp(config: Config) {
     res.json({
       demo: config.REVENUEPILOT_DEMO === "true",
       registration: config.ALLOW_REGISTRATION === "true",
+      localPreview: config.NODE_ENV !== "production",
     }),
   );
+  app.use("/api/v1/auth", publicAccountRouter(config));
   app.post("/api/v1/auth/register", async (req, res) => {
     if (config.ALLOW_REGISTRATION !== "true")
       throw new AppError(
@@ -211,6 +237,14 @@ export function createApp(config: Config) {
       await Membership.create([{ tenantId, userId, role: "owner" }], {
         session,
       });
+      await queueAccountLink(
+        "verify",
+        userId,
+        input.email,
+        tenantId,
+        config,
+        session,
+      );
       await Audit.create(
         [
           {
@@ -233,7 +267,7 @@ export function createApp(config: Config) {
     const input = loginInput.parse(req.body);
     await rateLimit(`login-email:${input.email}`, 12, 900000);
     const user = await User.findOne({ email: input.email })
-      .select("+passwordHash +mfaSecret")
+      .select("+passwordHash +mfaSecret +recoveryCodes")
       .lean();
     const valid = user
       ? await passwordMatches(user.passwordHash, input.password)
@@ -245,32 +279,56 @@ export function createApp(config: Config) {
         "Email or password is incorrect.",
       );
     if (user.mfaEnabled) {
-      if (!input.code)
-        throw new AppError(
-          401,
-          "MFA_REQUIRED",
-          "Enter the six-digit code from your authenticator.",
+      if (input.recoveryCode) {
+        const result = await User.updateOne(
+          {
+            _id: user._id,
+            recoveryCodes: digest(
+              input.recoveryCode.replaceAll("-", "").toUpperCase(),
+            ),
+          },
+          {
+            $pull: {
+              recoveryCodes: digest(
+                input.recoveryCode.replaceAll("-", "").toUpperCase(),
+              ),
+            },
+          },
         );
-      const step = totpStep(
-        unseal<string>(user.mfaSecret!, config.DATA_ENCRYPTION_KEY, user._id),
-        input.code,
-      );
-      if (step === undefined || step <= user.lastMfaStep)
-        throw new AppError(
-          401,
-          "MFA_INVALID",
-          "The authenticator code is invalid or already used.",
+        if (!result.modifiedCount)
+          throw new AppError(
+            401,
+            "MFA_INVALID",
+            "The recovery code is invalid or already used.",
+          );
+      } else {
+        if (!input.code)
+          throw new AppError(
+            401,
+            "MFA_REQUIRED",
+            "Enter the six-digit code from your authenticator.",
+          );
+        const step = totpStep(
+          unseal<string>(user.mfaSecret!, config.DATA_ENCRYPTION_KEY, user._id),
+          input.code,
         );
-      const result = await User.updateOne(
-        { _id: user._id, lastMfaStep: { $lt: step } },
-        { $set: { lastMfaStep: step } },
-      );
-      if (!result.modifiedCount)
-        throw new AppError(
-          401,
-          "MFA_REPLAYED",
-          "Use a new authenticator code.",
+        if (step === undefined || step <= user.lastMfaStep)
+          throw new AppError(
+            401,
+            "MFA_INVALID",
+            "The authenticator code is invalid or already used.",
+          );
+        const result = await User.updateOne(
+          { _id: user._id, lastMfaStep: { $lt: step } },
+          { $set: { lastMfaStep: step } },
         );
+        if (!result.modifiedCount)
+          throw new AppError(
+            401,
+            "MFA_REPLAYED",
+            "Use a new authenticator code.",
+          );
+      }
     }
     res.json(await sessionView(await issueSession(user._id, res, config)));
   });
@@ -289,6 +347,7 @@ export function createApp(config: Config) {
       res.json(await sessionView(await issueSession(user._id, res, config)));
     });
   app.use("/api/v1", requireSession(config));
+  app.use("/api/v1/auth", sessionAccountRouter(config));
   app.get("/api/v1/auth/session", async (req, res) =>
     res.json(await sessionView(req.auth!)),
   );
@@ -369,6 +428,9 @@ export function createApp(config: Config) {
         "MFA_INVALID",
         "The authenticator code is incorrect.",
       );
+    const recoveryCodes = Array.from({ length: 10 }, () =>
+      randomBytes(10).toString("hex").toUpperCase(),
+    );
     await User.updateOne(
       { _id: user._id, pendingMfaSecret: user.pendingMfaSecret },
       {
@@ -376,6 +438,7 @@ export function createApp(config: Config) {
           mfaSecret: user.pendingMfaSecret,
           mfaEnabled: true,
           lastMfaStep: step,
+          recoveryCodes: recoveryCodes.map((code) => digest(code)),
         },
         $unset: { pendingMfaSecret: 1 },
       },
@@ -384,7 +447,7 @@ export function createApp(config: Config) {
       userId: user._id,
       _id: { $ne: req.auth!.sessionId },
     });
-    res.json({ enabled: true });
+    res.json({ enabled: true, recoveryCodes });
   });
   app.post("/api/v1/tenants", async (req, res) => {
     const { name } = z
@@ -422,6 +485,11 @@ export function createApp(config: Config) {
       .parse(req.query.days ?? 30);
     res.json(await overview(req.auth!, days));
   });
+  router.use(journeyRouter(config));
+  router.use(paymentAdminRouter(config));
+  router.use(tenantAccountRouter(config));
+  router.use(integrationRouter(config));
+  router.use(billingRouter(config));
   router.get("/leads", requirePermission("leads.read"), async (req, res) => {
     const query = z
       .object({
@@ -532,7 +600,13 @@ export function createApp(config: Config) {
           );
         const result = await Lead.updateOne(
           { ...leadScope(req.auth!), _id: id, version: input.version },
-          { $set: { stage: input.stage }, $inc: { version: 1 } },
+          {
+            $set: {
+              stage: input.stage,
+              ...(input.stage === "lost" ? { lossReason: input.note } : {}),
+            },
+            $inc: { version: 1 },
+          },
           { session },
         );
         if (!result.modifiedCount)
@@ -557,6 +631,15 @@ export function createApp(config: Config) {
           req.requestId,
           session,
         );
+        if (["qualified", "lost"].includes(input.stage))
+          await milestone(
+            req.auth!.tenantId!,
+            id,
+            input.stage,
+            `stage:${id}:${input.version}`,
+            "counselor_record",
+            session,
+          );
       });
       res.json({ updated: true });
     },
@@ -577,12 +660,20 @@ export function createApp(config: Config) {
         { note },
         async (session) => {
           const lead = await Lead.findOneAndUpdate(
-            { ...leadScope(req.auth!), _id: id },
+            { ...leadScope(req.auth!), _id: id, erasedAt: { $exists: false } },
             { $set: { lastContactAt: new Date() }, $inc: { version: 1 } },
             { session, returnDocument: "after" },
           ).lean();
           if (!lead)
             throw new AppError(404, "LEAD_NOT_FOUND", "Lead not found.");
+          await milestone(
+            req.auth!.tenantId!,
+            id,
+            "contact_attempted",
+            `legacy-contact:${req.get("Idempotency-Key")}`,
+            "counselor_record",
+            session,
+          );
           await timeline(
             req.auth!.tenantId!,
             id,
@@ -753,6 +844,26 @@ export function createApp(config: Config) {
     async (req, res) => {
       const id = String(req.params.connectionId);
       await transaction(async (session) => {
+        const scope = { tenantId: req.auth!.tenantId, connectionId: id };
+        const connection = await Connection.findOne({
+          tenantId: req.auth!.tenantId,
+          _id: id,
+        })
+          .session(session)
+          .lean();
+        if (
+          connection &&
+          (connection.status !== "draft" ||
+            (await Command.exists(scope).session(session)) ||
+            (await PaymentOrder.exists(scope).session(session)) ||
+            (await Webhook.exists(scope).session(session)) ||
+            (await SyncRun.exists(scope).session(session)))
+        )
+          throw new AppError(
+            409,
+            "CONNECTION_HAS_HISTORY",
+            "Only unused drafts can be removed. Pause this connection to preserve reconciliation and activity history.",
+          );
         const result = await Connection.deleteOne(
           { tenantId: req.auth!.tenantId, _id: id },
           { session },
@@ -791,8 +902,8 @@ export function createApp(config: Config) {
         );
       throw new AppError(
         422,
-        "ADAPTER_NOT_IMPLEMENTED",
-        "This provider is configuration-only. No external request was made.",
+        "USE_INTEGRATION_CONTROLS",
+        "Configure and activate the connection, then use /integrations/:id/sync with an explicit import type and range.",
       );
     },
   );
@@ -854,6 +965,7 @@ export function createApp(config: Config) {
       res.json({
         items: members.map((m) => ({
           id: m._id,
+          userId: m.userId,
           role: m.role,
           name: users.find((u) => u._id === m.userId)?.name,
           email: users.find((u) => u._id === m.userId)?.email,

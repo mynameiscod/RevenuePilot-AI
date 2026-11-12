@@ -1,37 +1,51 @@
-# Security model and release gates
+# Security model
 
-This is a local evaluation foundation, not a declaration of production readiness or compliance certification. Never place real secrets in issues, screenshots, test fixtures or commits. For sensitive findings, contact the repository owner through an existing private channel.
+RevenuePilot 0.2 is a pilot implementation with explicit live-activation gates, not a production or compliance certification. Never put real credentials, contact records or tokenized URLs in issues, screenshots or commits. Report sensitive findings privately to the repository owner.
 
-## Implemented controls
+| Boundary                | Implemented control                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication          | Argon2id passwords; random opaque session tokens stored as hashes; eight-hour expiry; server logout/revocation; current membership checked on every tenant request                              |
+| Browser writes          | Exact Origin, local-only hostname aliases on same port, session CSRF token, HttpOnly/SameSite cookie; Secure __Host cookie in production                                                        |
+| Accounts                | Hashed single-use verification/reset/invite tokens, generic password recovery, expiry checks, session revocation, no reset-based MFA bypass                                                     |
+| MFA                     | Password-confirmed setup, encrypted TOTP secret, time-step replay guard, ten hashed one-time recovery codes, atomic recovery consumption                                                        |
+| Privileged live actions | Verified email + MFA + login within 15 minutes + installation live flag + matching checked configuration version + explicit confirmation                                                        |
+| Tenant authorization    | Immutable tenant IDs; tenant/object/assignee filters; owner-only billing and privileged membership changes; transaction-safe seats and last owner                                               |
+| Data protection         | AES-256-GCM random nonces with tenant/user associated context; tenant-keyed HMAC contact indexes; hidden secret columns; safe DTOs                                                              |
+| Acquisition             | Origin-bound public keys, rate limits, strict input, honeypot, server-side tenant/price/assignment, accepted-attempt deduplication                                                              |
+| Webhooks                | Raw-byte Stripe/Razorpay/Meta HMAC, timestamped generic/Outpero HMAC, SES SNS signed certificate validation restricted to configured regional AWS host/topic; unique connection/event body hash |
+| Outbound execution      | Host allowlist, HTTPS, no redirects, bounded response/time, capability dispatch, approved payload/config version, consent/suppression, quiet hours, monthly/daily caps, no unknown-result retry |
+| AI                      | PII pattern redaction, bounded transcript/output, structured schema validation, untrusted-input instruction, no tools or automatic lead/payment/consent edits                                   |
+| Money                   | Server prices, safe integer minor units, transaction-safe capture/refund, exact provider evidence matching, no redirect trust, separate test/live and SaaS/tenant billing                       |
+| Privacy                 | Purpose-specific ledger, self-service withdrawal on confirmation link, WhatsApp STOP/SES suppression, operator evidence, retention, password-confirmed local erasure and scoped export          |
+| App and diagnostics     | React escaped text, local fonts, CSP/frame restrictions, request IDs, generic errors, no request-body/credential logging                                                                        |
 
-| Boundary            | Control                                                                                                                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| User authentication | Argon2id passwords, opaque random session tokens stored as hashes, eight-hour expiry, server logout                                                                                  |
-| Browser writes      | Exact production Origin; development-only localhost/127.0.0.1 aliases at the configured scheme/port, session-bound CSRF token, HttpOnly/SameSite cookie, Secure cookie in production |
-| Tenant access       | Server membership lookup on every request; immutable tenant IDs; tenant and object filters                                                                                           |
-| Roles               | Owner/admin management; counselor assigned leads; finance receipts; analyst aggregate data; viewer masked leads                                                                      |
-| Sensitive fields    | AES-256-GCM with random nonce and tenant/user authenticated context; secrets hidden from normal model queries and response DTOs                                                      |
-| Identity lookup     | Tenant-specific HMAC; no global cross-tenant lead identity matching                                                                                                                  |
-| MFA                 | Password recheck for setup, encrypted TOTP secret, confirmation, time-step replay check, other-session invalidation                                                                  |
-| Money               | Positive integer strings, BigInt totals, transaction-safe refund ceiling, unique references                                                                                          |
-| Replay              | Durable request idempotency, unique collector event keys, outbox/event transaction deduplication                                                                                     |
-| Input handling      | Strict Zod request schemas, escaped search regex, bounded payloads, rate buckets                                                                                                     |
-| Browser app         | React text rendering, no dangerous HTML renderer, self-hosted fonts, Nginx CSP and frame restriction                                                                                 |
-| Diagnostics         | Request IDs; generic server error responses; no credential/request-body logging                                                                                                      |
+Roles:
 
-MFA is optional in this milestone. The database key must be a random 32-byte hex value; startup fails if missing. No production demo mode is permitted. Public website keys identify a source, not a trusted person; an attacker can forge browser-like submissions outside a browser. Origin checks reduce accidental abuse but do not make collector evidence authoritative.
+| Capability                          | Owner | Admin | Counselor | Finance | Analyst | Viewer |
+| ----------------------------------- | ----- | ----- | --------- | ------- | ------- | ------ |
+| Read leads                          | All   | All   | Assigned  | Masked  | Masked  | Masked |
+| Edit leads / demos                  | Yes   | Yes   | Assigned  | No      | No      | No     |
+| Read contact PII / call text        | Yes   | Yes   | Assigned  | No      | No      | No     |
+| Revenue read                        | Yes   | Yes   | No        | Yes     | Yes     | No     |
+| Revenue write                       | Yes   | Yes   | No        | Yes     | No      | No     |
+| Connectors/settings/privacy         | Yes   | Yes   | No        | No      | No      | No     |
+| Members/audit                       | Yes   | Yes   | No        | No      | No      | No     |
+| SaaS billing / manage owners-admins | Yes   | No    | No        | No      | No      | No     |
 
-No untrusted provider code, transcripts, user prompts or remote URLs are executed. Connector drafts cannot trigger HTTP requests. This eliminates outbound provider effects in v0.1, but does not substitute for the controls needed when adapters are added.
+## Important boundaries
 
-## Required before customer production
+Public origin checks are not authentication against non-browser clients. Browser source tags and form telemetry remain untrusted observations. Signed provider events prove the configured sender, not a user's intent; payment evidence is read back from the provider before recording cash.
 
-1. Add verified-email onboarding, password reset, MFA recovery, mandatory privileged-user MFA, session inventory/revocation and reauthentication for sensitive changes. Do not enable MFA on an important account before a recovery process exists.
-2. Add invitations, owner transfer, last-owner protection, tenant suspension and tested member lifecycle APIs. Current membership list is read-only; roles are enforced but administration is not complete.
-3. Deploy behind TLS with explicit trusted-proxy settings, correct client-IP rate limiting, private authenticated MongoDB/Redis, workload credentials and a secret manager. Current API ignores forwarded client IPs rather than trusting arbitrary headers; behind Nginx, IP limits are therefore shared at the proxy address until configured deliberately.
-4. Introduce key versions and rotation/migration tooling, encrypted backup retention, restore drills, least-privilege database users and operator access controls. Encryption of contacts is not full-field PII encryption: names, notes, references and event details still need protected storage and appropriate retention.
-5. Implement retention, deletion/export, consent ledger, suppression enforcement and region controls. Obtain market-specific privacy/calling review before collecting real tracking data or making outbound contact. No automatic tracking starts before consent in the SDK.
-6. Add signature/raw-body webhook verification, timestamp replay protection, scoped OAuth state/PKCE, destination allowlists/SSRF protection, secret refresh locks and provider-specific certification before activating connectors.
-7. Add per-tenant quotas, subscription entitlements, background-job fairness, queue alerts/dead-letter recovery, reporting rollups, load testing and independent security testing.
-8. Verify container builds and full Docker lifecycle; scan images, pin digests, enforce branch protections and test recoverability. Production dependencies were audited locally; this is not a full supply-chain or penetration assessment.
+No provider message/call is sent automatically upon form submission. A worker rechecks consent just before execution. A request already in flight when consent is withdrawn or a connection is paused cannot be recalled. No automatic provider failover is allowed. Provider acceptance does not prove delivery or a completed call. Suppressed contacts remain blocked even if a later individual consent purpose is granted; removal requires separate reviewed operational handling.
 
-Legal retention periods, data residency, SLA and provider costs are product decisions still to be agreed. None are implied by the defaults in this code.
+Local account-mail preview exists only outside production and is scoped to the signed-in requester. Production mail uses installation-owned SES credentials, while tenant marketing SES keys remain separately scoped. Demo mode forbids live-provider execution. Production also forbids demo mode and non-HTTPS app origins.
+
+Names, notes, manual references and event text can contain PII even though contact/call/secret fields are encrypted. Encryption at the database/storage/backup layer and restricted operator access are required. Erasure pseudonymizes local data while preserving financial/audit evidence; backups and external copies require separate procedures. Consent decisions may be superseded in the ledger; application audit is append-only through the API, not tamper-proof against a database administrator.
+
+AI redaction is a best-effort identifier filter, not a proof of anonymization. A reviewer must select appropriate content and provider data terms. Imported CRM contacts do not inherit invented marketing consent. Account-only health checks do not certify every scope or webhook contract.
+
+## Remaining infrastructure/release requirements
+
+See [OPERATIONS.md](docs/OPERATIONS.md). Before customer production: private authenticated MongoDB/Redis with TLS, secret management and key version/rotation migration, encrypted recoverable backups, deliberate trusted-proxy/client-IP configuration, real provider certification, infrastructure restore drill, measured load/per-tenant fairness, image scanning/digest pinning, branch protections and independent security review. API currently ignores forwarded IPs, so proxy-based IP limits may be shared; configure trust only for the actual controlled proxy.
+
+No OAuth authorization UI/state/PKCE flow is claimed; administrators supply scoped provider credentials. No SSO, regional residency guarantees, managed secrets/KMS rotation, legal retention certification or tested production SLA is claimed. The included local Compose stack is not safe for public exposure without the production controls above.

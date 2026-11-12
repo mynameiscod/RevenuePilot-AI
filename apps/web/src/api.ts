@@ -45,7 +45,7 @@ export const mutate = <T>(
   path: string,
   body: unknown,
   method = "POST",
-  operationKey = crypto.randomUUID(),
+  operationKey: string = crypto.randomUUID(),
 ) =>
   api<T>(path, {
     method,

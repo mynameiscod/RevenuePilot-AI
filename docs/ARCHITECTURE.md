@@ -1,71 +1,92 @@
-# Architecture and data model
+# Technical architecture
 
-## Boundary
+## Independent product boundary
 
-RevenuePilot owns its identity, tenant memberships, data, credentials, processes and deployment lifecycle. CodeBegun is the first intended customer; the seed uses fictional CodeBegun records. There is no integration with any existing CodeBegun system in this release. Future integrations require a separately approved contract and adapter.
+RevenuePilot owns identity, tenant membership, contacts, evidence, financial ledger, provider credentials and operational state. CodeBegun is the first intended tenant, not a special code path. The two seeded tenants are synthetic. No LMS source, endpoint, database, credentials, deployment or configuration is accessed. Any future CodeBegun integration must use an explicitly approved external contract; no shared collection or tenant header is trusted.
 
-The initial design is a modular monolith with separate worker and collector processes. A single npm lockfile pins compatible dependencies. Shared TypeScript contracts avoid inconsistent client/server field definitions. Services can be split when measured workload or isolation requirements justify it.
+A modular monolith keeps transactional rules together while separating Express API, collector and asynchronous worker processes. One lockfile pins the React/Vite/Bootstrap application and shared TypeScript packages. MongoDB must support transactions. Redis/BullMQ is delivery infrastructure, never the authoritative record.
 
 ```mermaid
 flowchart TD
-  Browser[React workspace] --> Edge[Nginx]
-  Websites[Consented website SDK] --> Edge
-  Edge --> API[Express domain API]
-  Edge --> Collector[Event collector]
-  API --> Mongo[(MongoDB replica set)]
+  Visitor["Visitor and hosted form"] --> Edge["Nginx"]
+  Operator["Tenant workspace"] --> Edge
+  Edge --> API["Express domain API"]
+  Edge --> Collector["Consented event collector"]
+  API --> Mongo[("MongoDB replica set")]
   Collector --> Mongo
-  Mongo --> Dispatcher[Outbox dispatcher]
-  Dispatcher --> Redis[(Redis / BullMQ)]
-  Redis --> Worker[Timeline worker]
+  Vendor["Provider webhook"] --> API
+  Mongo --> Dispatcher["Durable work dispatcher"]
+  Dispatcher --> Redis[("Redis and BullMQ")]
+  Redis --> Worker["Projection and provider worker"]
   Worker --> Mongo
-  API --> Drafts[Encrypted provider drafts]
+  Worker --> Providers["Scoped provider adapters"]
+  API --> Providers
 ```
 
-The browser receives safe DTOs. API authorization checks the authenticated user's current membership for the tenant path on every request. A tenant header or body field never grants access. Counselor filters include both tenant and assignee. Parent objects are resolved inside that scope before dependent records are read or written.
+The API performs explicit readonly provider checks/imports and checkout creation. Worker dispatch handles approved calling, messaging, AI/conversion commands and incoming webhook projections. The browser never receives provider secrets. Provider selection is in the connector registry, not lead, enrollment or ledger models.
 
-## Consistency
+## Journey and evidence
 
-A MongoDB transaction commits each lead/financial change together with its audit and outbox entry. The dispatcher can enqueue an event more than once. The worker uses the outbox ID as the event ID, upserts the projection and marks the outbox processed in the same transaction. Business deduplication persists independently of BullMQ retention.
+```mermaid
+flowchart TD
+  Ad["Reported ad clicks"] --> Visit["Consented visit and form attempt"]
+  Visit --> Accepted["Server accepts enquiry"]
+  Visit --> Exit["Inferred form exit after 30 minutes"]
+  Accepted --> Task["Assigned follow-up"]
+  Task --> Contact["Recorded contact outcome"]
+  Contact --> Demo["Scheduled demo and attendance"]
+  Contact --> Loss["Explicit loss or follow-up"]
+  Demo --> Checkout["Server-priced checkout"]
+  Checkout --> Verification["Signature and provider reconciliation"]
+  Verification --> Ledger["Cash ledger and enrollment"]
+  Ledger --> Refund["Refund and enrollment review"]
+  Ledger --> Attribution["Touch attribution and observed spend"]
+  Attribution --> Approval["Review conversion feedback"]
+  Approval --> Ads["Provider acceptance status"]
+```
 
-Redis is a delivery aid, not the system of record. If unavailable, committed outbox entries remain in MongoDB. Failed jobs retry eight times with exponential backoff. Operational dead-letter tooling, queue health and automated alerting remain release gates. Demo mode replaces the Redis dispatcher with a periodic direct outbox drain; it exercises the same projection transaction.
+No individual-level ad click is invented. Platform clicks/impressions are aggregate imports. Only consented browser activity is observable. A browser submit event is an attempt; an accepted enquiry exists only after the authoritative transaction commits. Consent blockers and anonymous visitors create explicit measurement gaps.
 
-## Collections
+A form supplies tenant, course, immutable offer price, exact allowed origins and eligible assignees. The server resolves these from a public key, rejects client tenant/amount fields and issues an opaque 24-hour acceptance token. Contact/course identity HMAC deduplicates returning enquiries without exposing existing customer IDs or overwriting their details. Concurrent replays use a unique form/attempt key and normalized request hash. Round-robin assignment increments transactionally among currently active eligible members.
 
-Canonical fields and indexes are executable in `apps/api/src/models.ts`. All business IDs are UUID strings; all dates are UTC BSON dates. All collections have creation/update timestamps. `tenantId` is immutable on tenant-owned documents.
+The contact workflow records outcomes independently of lead stages. A scheduled demo is not attendance; host bookings are serialized at the tenant root and checked for overlap. Attendance cannot precede start time. No-show/follow-up outcomes create tasks. Marking a lead enrolled manually does not create payment-backed enrollment evidence.
 
-| Collection            | Main fields                                                                                                            | Isolation / uniqueness                                        |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `users`               | name, normalized email, password hash, encrypted MFA secret, last MFA time step                                        | Global identity; unique email                                 |
-| `tenants`             | name, timezone, currency, response target, attribution preference, demo flag                                           | Tenant aggregate root                                         |
-| `memberships`         | tenantId, userId, role, active status                                                                                  | Unique tenant/user pair; rechecked per request                |
-| `auth_sessions`       | userId, token hash, CSRF token, expiry                                                                                 | Unique token hash; expiry TTL and runtime expiry check        |
-| `leads`               | tenantId, name, encrypted email/phone, lookup hashes, course, source, campaign, stage, assignee, version, last contact | Tenant/stage/date and tenant/assignee indexes                 |
-| `revenue_ledger`      | tenantId, leadId, capture/refund, minor units, currency, reference, original receipt, recorded source, note, evidence  | Unique tenant/reference; refund linked to same-tenant capture |
-| `connections`         | tenantId, provider, label, accountId, credential cipher, configured key names, draft status                            | Tenant-owned; secret excluded from ordinary selects/DTOs      |
-| `audit_logs`          | tenantId, actor, action, targetId, requestId                                                                           | Tenant/date index; no delete/update API                       |
-| `events`              | tenantId, leadId, type, title, detail, actor, occurredAt                                                               | Outbox ID as unique event ID; tenant/lead/time index          |
-| `outbox`              | tenantId, kind, payload, processedAt, attempts                                                                         | Pending/time index                                            |
-| `idempotency_records` | tenantId, principal, route, key, request hash, response                                                                | Unique tenant/principal/route/key                             |
-| `sites`               | tenantId, name, public key, exact origins                                                                              | Unique public key; server resolves owning tenant              |
-| `web_events`          | tenantId, siteId, external eventId, pseudonymous IDs, type, path, consent, occurredAt                                  | Unique tenant/site/event ID                                   |
-| `rate_buckets`        | hashed bucket key, count, expiry                                                                                       | Atomic increments and TTL                                     |
+An offer is a full-enrollment price. Demo fees, deposits, installment schedules and tax invoices are not modeled as enrollment offers. One order per lead/form prevents different confirmation links from charging the same offer again. Re-enrollment after refund requires an explicitly new offer; ordinary retries reuse the existing order.
 
-Email and phone lookups use tenant-specific HMAC values. Names, notes, activity details and manual references can still contain personal data; database storage encryption and restricted operator access are required before customer use. Audit logs are append-only through the application, not cryptographically immutable against a database administrator.
+## Transactions, retries and external boundaries
 
-## Money and measurement
+| Operation                   | Transaction boundary                                                               | Replay behavior                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Accepted enquiry            | Lead, identity, consent, task, touch, acceptance, audit/outbox, quota              | Same attempt/body returns the same opaque token; changed body conflicts               |
+| Manual lead/contact/receipt | Business record, audit, outbox, durable idempotency response                       | Key binds tenant, principal, route and normalized body                                |
+| Timeline projection         | Event upsert plus outbox processed marker                                          | Outbox ID is event ID; repeated projection is harmless                                |
+| Payment settlement          | Receipt/refund, cumulative capture balance, order, enrollment, milestones, outbox  | One capture/order; only increasing cumulative refund deltas are applied               |
+| Incoming webhook            | Verified raw payload encrypted into unique connection/event inbox                  | Same bytes accepted; conflicting reuse rejected; processing retried up to eight times |
+| Outbound command            | Approval persisted, then atomic worker claim before external I/O                   | No automatic resend after ambiguous result; expired running lease becomes unknown     |
+| Billing entitlement         | Current provider subscription/invoice, server price mapping, tenant plan and audit | Browser redirect cannot grant plan; late superseded subscription events ignored       |
 
-- Amounts travel as **integer strings in minor units**, with BigInt arithmetic. Floating-point amounts and zero/negative captures are rejected. INR/USD/AED currently use two minor digits.
-- A refund belongs to one capture, tenant, lead and currency. The original capture tracks refunded minor units inside a transaction; concurrent refunds cannot exceed it. Original amounts are not edited; the ledger adds refund entries. A unique reference and durable request key prevent replay duplicates.
-- A manual record is not gateway verification, settlement, accounting revenue or evidence of enrollment. Stage changes never create cash; cash never creates enrollment.
-- Overview lead metrics use leads acquired in the selected rolling 7/30/90-day window. Stage counts describe their **current** position. Trend buckets use UTC acquisition date; an enrolled trend means currently enrolled leads grouped by acquisition date.
-- Cash metrics use receipt/refund recording time in that window, independently of lead acquisition time. Source-linked cash uses the source copied onto each receipt; refunds inherit their capture's source. These two cohorts need not have the same population.
-- Workspace currency selects the displayed summary only. The API returns separate currency totals; there is no implicit FX conversion.
-- A source is currently a manually recorded channel. No causal, view-through, multi-touch or cross-device attribution is claimed. The stored attribution preference and allocation helper are preparation for a future engine, not active report behavior.
-- Response coverage counts new-stage leads without recorded contact, beyond elapsed response minutes; it does not use working hours. A stage change alone is not contact evidence.
-- Browser events are untrusted observations. A submitted form event is an attempt, not an accepted lead. People who click an ad but never load the website cannot be individually observed here.
+Network I/O stays outside MongoDB transactions. The state before checkout creation becomes `unknown` before issuing the request; a timeout requires reconciliation, not another charge. Stripe receives a stable idempotency key; Razorpay receives a stable reference. A provider read must match order reference, amount, currency, captured status and environment before recording money. Redirect query parameters and browser success messages are never evidence.
 
-## Scaling and operations
+Webhook processing can repeat; business uniqueness is retained independently of Redis job retention. Incoming work recovers an expired lease for idempotent replay. Outgoing work and account mail recover an ambiguous lease as unknown and require investigation. A paused connection blocks new execution and moves queued commands back to review; an already-started remote request cannot be recalled.
 
-This foundation computes bounded-window overview reports in application memory and uses offset pagination. Before scale: add indexed rollups, cursor pagination, cohort definitions with tenant-local reporting boundaries, payload/retention budgets and per-tenant queue fairness. Load-test real tenant distributions before claiming capacity.
+## Tenancy and authorization
 
-A production topology needs TLS, authenticated managed/secured MongoDB replica sets, authenticated Redis, private networking, secret management and backup/restore exercises. Preserve the data key securely; rotation needs versioned ciphertext and migration tooling. Image versions are pinned for reproducibility but not yet digest-pinned or container-scanned in this environment. No production infrastructure has been created.
+Global user identity may have multiple memberships. The selected tenant path is only an address: the API checks active membership on every request. Counselor reads/writes further include `assignedTo`. Object IDs and foreign references are resolved in that scope before use. Workers derive tenant from stored command/webhook records and resolve the connection with the same tenant. Signed webhook credentials identify the owning connection; incoming tenant fields cannot redirect it.
+
+Roles and permissions are executable in `packages/core/src/contracts.ts`. Owner/admin operate settings and connectors; counselors manage their assigned sales work; analysts see non-PII analytics; finance handles receipts; viewers have restricted reads. Owner is required for SaaS billing and administrator/owner membership changes. Seat checks and last-owner changes serialize at the tenant root. See SECURITY.md for details.
+
+## Money and reports
+
+Amounts are positive integer strings in minor units; calculations use BigInt. INR/USD/AED remain separate. Refund allocation uses the difference between cumulative attributed refund totals, preserving every minor unit even across repeated small refunds.
+
+Evidence categories are `manual_record`, `sandbox`, `provider_test` and `provider_verified`. Non-demo overview cash excludes sandbox/provider-test records. Journey reports expose each evidence category separately. Only verified live receipts are compared with verified live imported spend. Bank settlement, tax/accounting revenue and profitability are separate concepts.
+
+The journey cohort contains leads created in the selected rolling 1–90-day window. Milestones are unique lead coverage as of report time, may be skipped and need not be monotonic. Stalls concern open leads older than seven days. Form exits concern observed attempts at least 30 minutes old. Recorded loss notes are distinct from inferred stalls. Cash/refunds use their own recording-time cohort.
+
+Touch models use eligible consented touches in the 30 days before each capture: earliest, latest or equal weight per touch. Source tags are self-reported, not ad-platform attribution. Campaign/ad joins require exact source, account ID, campaign ID and ad ID. Names never create a join. Duplicate imports of the same account/ad/date/currency/evidence are deduplicated in reporting. ROAS uses observed UTC daily spend and surfaces coverage; partial-day/window differences and attribution assumptions remain explicit. No causal, view-through, cross-device or FX claims.
+
+## Capacity and evolution
+
+Reports currently cap at 10,000 cohort leads, 10,000 receipts, 20,000 attempts/spend rows and 100,000 touch records; excessive requests return 422 with a shorter-window instruction. Grouped in-memory calculations are appropriate for pilot evaluation, not a measured scale promise. Lists use bounded offset pagination; imports use vendor cursors. Background conversion planning streams recent evidence and respects monthly quotas, but a commercial high-volume deployment needs materialized rollups, per-tenant queue fairness and provider/account-specific backfill scheduling.
+
+Future service splits should follow observed load: collector ingestion, provider execution and report projections are natural boundaries. Enterprise isolation can use a dedicated database/key/queue per tenant through repositories behind the same domain contracts. No enterprise isolation, SSO or regional compliance certification is claimed in this release.

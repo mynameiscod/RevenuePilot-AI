@@ -26,6 +26,8 @@ import { transaction } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { leadScope, type AuthContext } from "./auth.ts";
 import type { Config } from "./config.ts";
+import { reserveUsage } from "./journey/entitlements.ts";
+import { milestone } from "./journey/evidence.ts";
 
 export async function audit(
   auth: AuthContext,
@@ -156,6 +158,7 @@ export async function createLead(
   config: Config,
   session: ClientSession,
 ) {
+  await reserveUsage(auth.tenantId!, "leads", session);
   const { email, phone, ...fields } = input;
   const [lead] = await Lead.create(
     [
@@ -169,6 +172,13 @@ export async function createLead(
         ),
         emailHash: email
           ? lookupHash(email, config.DATA_ENCRYPTION_KEY, auth.tenantId!)
+          : undefined,
+        phoneHash: phone
+          ? lookupHash(
+              phone.replace(/\D/g, ""),
+              config.DATA_ENCRYPTION_KEY,
+              auth.tenantId!,
+            )
           : undefined,
         assignedTo: auth.userId,
       },
@@ -185,6 +195,14 @@ export async function createLead(
     session,
   );
   await audit(auth, "lead.created", lead._id, requestId, session);
+  await milestone(
+    auth.tenantId!,
+    lead._id,
+    "lead_accepted",
+    `lead:${lead._id}`,
+    "server",
+    session,
+  );
   // Durable HTTP receipts retain identifiers, never decrypted contact fields.
   return { id: lead._id };
 }
@@ -193,6 +211,11 @@ export async function createReceipt(
   input: z.infer<typeof receiptInput>,
   requestId: string,
   session: ClientSession,
+  verified?: {
+    evidence: "sandbox" | "provider_test" | "provider_verified";
+    paymentOrderId: string;
+    providerEventId: string;
+  },
 ) {
   const lead = await Lead.findOne({
     tenantId: auth.tenantId,
@@ -228,6 +251,12 @@ export async function createReceipt(
         422,
         "CAPTURE_NOT_FOUND",
         "The original capture, lead and currency must match.",
+      );
+    if (capture.evidence !== "manual_record" && !verified)
+      throw new AppError(
+        422,
+        "VERIFIED_REFUND_REQUIRED",
+        "Reconcile provider refunds through the payment order.",
       );
     const total = BigInt(capture.refundedMinor) + BigInt(input.amountMinor);
     if (total > BigInt(capture.amountMinor))
@@ -265,6 +294,7 @@ export async function createReceipt(
         _id: id,
         tenantId: auth.tenantId,
         ...input,
+        ...(verified ?? {}),
         channel,
         recordedBy: auth.userId,
       },
@@ -276,7 +306,7 @@ export async function createReceipt(
     lead._id,
     `payment.${input.kind}.v1`,
     input.kind === "capture" ? "Receipt recorded" : "Refund recorded",
-    `${input.currency} ${(BigInt(input.amountMinor) / 100n).toString()} · manual evidence`,
+    `${input.currency} ${(BigInt(input.amountMinor) / 100n).toString()} · ${verified?.evidence ?? "manual evidence"}`,
     auth.userId,
     session,
   );
@@ -290,27 +320,30 @@ export async function overview(
   const now = new Date(),
     start = new Date(now.getTime() - days * 86400000),
     scope = leadScope(auth);
-  const [rows, receipts, tenant, connectionCount, tracking] = await Promise.all(
-    [
-      Lead.find({ ...scope, createdAt: { $gte: start } })
-        .select("-note")
-        .lean(),
-      can(auth.role!, "revenue.read")
-        ? Receipt.find({
-            tenantId: auth.tenantId,
-            createdAt: { $gte: start },
-          }).lean()
-        : [],
-      Tenant.findById(auth.tenantId).lean(),
-      Connection.countDocuments({ tenantId: auth.tenantId }),
-      auth.role !== "counselor"
-        ? WebEvent.aggregate([
-            { $match: { tenantId: auth.tenantId, createdAt: { $gte: start } } },
-            { $group: { _id: "$type", count: { $sum: 1 } } },
-          ])
-        : [],
-    ],
-  );
+  const [rows, allReceipts, tenant, connections, tracking] = await Promise.all([
+    Lead.find({ ...scope, createdAt: { $gte: start } })
+      .select("-note")
+      .lean(),
+    can(auth.role!, "revenue.read")
+      ? Receipt.find({
+          tenantId: auth.tenantId,
+          createdAt: { $gte: start },
+        }).lean()
+      : [],
+    Tenant.findById(auth.tenantId).lean(),
+    Connection.find({ tenantId: auth.tenantId }).select("status mode").lean(),
+    auth.role !== "counselor"
+      ? WebEvent.aggregate([
+          { $match: { tenantId: auth.tenantId, createdAt: { $gte: start } } },
+          { $group: { _id: "$type", count: { $sum: 1 } } },
+        ])
+      : [],
+  ]);
+  const receipts = tenant?.demo
+    ? allReceipts
+    : allReceipts.filter(
+        (r) => !["sandbox", "provider_test"].includes(r.evidence),
+      );
   const cash: Overview["cashByCurrency"] = {};
   for (const r of receipts) {
     cash[r.currency] ??= { gross: "0", refunds: "0", net: "0" };
@@ -392,6 +425,11 @@ export async function overview(
       formStarts: count("form.started.v1"),
       submitAttempts: count("form.submitted.v1"),
     },
-    connections: { configured: connectionCount, live: 0 },
+    connections: {
+      configured: connections.length,
+      live: connections.filter(
+        (c) => c.mode === "live" && c.status === "active",
+      ).length,
+    },
   };
 }

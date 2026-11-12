@@ -96,6 +96,10 @@ export const loginInput = z
       .string()
       .regex(/^\d{6}$/)
       .optional(),
+    recoveryCode: z
+      .string()
+      .regex(/^[A-Fa-f0-9-]{20,24}$/)
+      .optional(),
   })
   .strict();
 export const leadInput = z
@@ -139,6 +143,7 @@ export const settingsInput = z
     currency: z.enum(["INR", "USD", "AED"]),
     firstResponseMinutes: z.number().int().min(1).max(1440),
     attributionModel: z.enum(["first_touch", "last_touch", "linear"]),
+    retentionDays: z.number().int().min(30).max(365).optional(),
   })
   .strict();
 export const connectionInput = z
@@ -247,11 +252,18 @@ export interface TenantView {
   currency: string;
   role: Role;
   demo: boolean;
+  retentionDays: number;
   firstResponseMinutes: number;
   attributionModel: string;
 }
 export interface SessionView {
-  user: { id: string; name: string; email: string; mfaEnabled: boolean };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    mfaEnabled: boolean;
+    emailVerified: boolean;
+  };
   tenants: TenantView[];
   csrfToken: string;
 }
@@ -266,6 +278,7 @@ export interface ReceiptView {
   reference: string;
   createdAt: string;
   channel: string;
+  evidence: string;
   originalReceiptId?: string;
 }
 export interface Overview {

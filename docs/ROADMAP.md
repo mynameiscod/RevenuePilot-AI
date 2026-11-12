@@ -1,26 +1,29 @@
-# Implementation roadmap
+# Implementation status and remaining release gates
 
-This repository starts the independent project. Milestone 1 is implemented below; remaining phases are not represented as finished features. No deployment, existing-system changes or provider activation is included in this commit.
+## Delivered in 0.2
 
-| Milestone                              | Scope                                                                                                                                        | Exit criteria                                                                                                    |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 1 — Working foundation                 | Tenant/session/roles; leads/history; manual financial evidence; draft catalog; consented event intake; dashboard; Docker/CI                  | Isolation and integrity tests pass; local browser workflows verified; limitations documented                     |
-| 2 — Production identity and operations | Verified email, recovery, privileged MFA, invitations, member lifecycle, secure infrastructure, backups, observability, retention            | Two-tenant abuse tests, recovery tests, restore exercise, full Docker smoke and independent security review      |
-| 3 — Authoritative acquisition          | Consent ledger, UTM/click IDs, form attempts and accepted lead receipts, identity links, campaign dimensions, first advertising/CRM adapters | Replay-safe accepted leads; traceable click/visit/form/lead evidence; completeness and freshness surfaced        |
-| 4 — Revenue and journey attribution    | Payment webhooks/reconciliation, demo attendance, loss reasons, immutable milestones, first/last/linear windows                              | Capture/refund/dispute reconciliation, currency conservation, versioned cohort results, late-event recalculation |
-| 5 — Calling, messaging and AI          | Provider-independent command interfaces, suppression/consent, quiet hours, approval policy, AI evidence summaries and budgets                | Sandbox certification, injection tests, no duplicate outbound effects, traceable evidence/costs                  |
-| 6 — Commercial SaaS                    | Subscriptions, metering/quotas, entitlements, exports/deletion, region choices, support tooling, onboarding                                  | Tenant lifecycle billing tests, quota enforcement, operational SLOs and controlled pilot                         |
+| Workstream               | Implemented scope                                                                                                                         | Evidence                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Independent architecture | Own repository, database, identity, configuration, containers and synthetic CodeBegun/Northstar tenants                                   | No LMS dependency; executable schemas and architecture docs       |
+| Local startup            | Windows-compatible temporary MongoDB; localhost/127.0.0.1 origin consistency; credential-free sample entry                                | Process smoke/origin regression tests                             |
+| SaaS accounts            | Verification/reset, invitations, role changes/revocation, seats, last owner, sessions, TOTP recovery                                      | Account lifecycle/isolation tests                                 |
+| Acquisition              | Public priced forms, separate consents, telemetry, authoritative deduplicated acceptance, assignment/tasks                                | Concurrent enquiry and quota tests; browser flow                  |
+| Sales                    | Contact outcomes, qualification/loss evidence, scheduled conflict-checked demos, attendance, provider call history                        | API booking/outcome tests; browser flow                           |
+| Money/enrollment         | Stripe/Razorpay adapters, durable raw webhooks, provider reads, sandbox/testing, cumulative refunds, payment-backed enrollment            | Capture/refund concurrency and mismatch tests; browser simulation |
+| Attribution              | First/last/linear 30-day models, exact campaign/ad keys, separate currencies/evidence, observed spend/clicks, inferred stalls             | Integer conservation, spend dedupe and test/live separation tests |
+| Connector operations     | Eleven adapters, strict config, readonly checks, activation, paged sync, approved commands, consent/quiet-hour/cap checks, inbound status | Protocol fixtures, command guards, replay tests                   |
+| Commercialization        | Separate SaaS billing, server-owned price mapping, paid-invoice entitlement reconciliation, usage caps                                    | Billing reconciliation/reordered subscription tests               |
+| Delivery and operations  | Build, dependency audit, Linux/Windows matrix, Docker smoke/isolated restore, technical handover                                          | Current commit's CI and ACCEPTANCE.md                             |
 
-Recommended pilot sequence: CodeBegun's synthetic workspace → controlled test tenant → approved read-only integration shadow mode → reconciled pilot → a second unrelated tenant. No CodeBegun-specific integration is active now. API permissions and provider availability must be verified when each adapter is built; provider catalog entries do not guarantee access.
+## Activation gates requiring external accounts or explicit deployment approval
 
-Prioritize one advertising provider and one authoritative lead source before adding all vendors. Add gateway reconciliation before revenue optimization and outbound automation. Independent tenant provisioning, provider swaps and commercial entitlements should be exercised before public SaaS launch.
+1. Choose the actual CodeBegun provider accounts and approve exact data scopes. Supply credentials directly in the application/secret manager; do not paste them in chat. Establish service ownership, domain/sender/template/agent settings and provider sandbox access.
+2. Certify those adapters with real test accounts and actual event envelopes. Reconcile imported counts, money and attribution joins. Configure explicit campaign URL IDs and consent language. Complete Outpero correlation/signature setup and Google Data Manager permission checks.
+3. Approve production infrastructure/domain, complete security/load/restore tests there, then separately enable the intended live actions with budgets and owner MFA.
+4. Run a CodeBegun shadow pilot and reconcile at least one real lead through conversation/demo/payment/refund; a second unrelated tenant validates commercialization boundaries. No production pilot or real transaction has been performed here.
 
-## Decisions before the next external integration
+## Follow-on product work, outside this implemented release
 
-- Source of accepted leads, sales stage ownership, demo attendance and enrollment truth.
-- First ad account/provider and permitted read scopes; provider sandbox accounts and callback domain.
-- Payment evidence source and treatment of discounts, installments, disputes and refunds.
-- Pilot users/roles, data retention, data region and consent policy.
-- Hosting budget, operational ownership, response targets and commercial packaging.
+Self-service OAuth/SSO, automated historical backfill schedules, CRM writeback, calendar/email invites and meeting links, configurable workflow builder, installment/demo-fee/tax-invoice logic, provider conversion retractions after refunds, operator resolution UI for uncertain provider calls, key rotation/KMS migration, materialized analytics, cursor pagination/fair queues at high volume, regional data controls and externally tested SLAs.
 
-These choices do not block local development. Credentials, real customer data and deployment require their own authorized setup. No new repository needs to be created; this is the project's source repository.
+These are explicit gaps rather than hidden “complete” claims. The current end-to-end journey is implemented and locally testable. A commercial production launch remains dependent on actual provider certification, infrastructure readiness and deployment authorization.

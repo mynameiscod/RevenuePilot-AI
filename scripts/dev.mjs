@@ -48,10 +48,21 @@ const children = [
 let projectionTimer;
 if (demo) {
   const { drainOutbox } = await import("../apps/worker/src/project.ts");
-  projectionTimer = setInterval(
-    () => drainOutbox().catch((e) => console.error(e.name)),
-    1000,
-  );
+  const { drainJourney } = await import("../apps/worker/src/journey.ts");
+  const { readConfig } = await import("../apps/api/src/config.ts");
+  let draining = false;
+  projectionTimer = setInterval(async () => {
+    if (draining) return;
+    draining = true;
+    try {
+      await drainOutbox();
+      await drainJourney(readConfig());
+    } catch (e) {
+      console.error(e.name);
+    } finally {
+      draining = false;
+    }
+  }, 1000);
 } else
   children.push(
     spawn(process.execPath, ["--import", "tsx", "apps/worker/src/index.ts"], {

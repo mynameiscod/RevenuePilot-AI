@@ -7,7 +7,7 @@ export interface ProviderManifest {
   description: string;
   capabilities: string[];
   credentialFields: { key: string; label: string }[];
-  status: "configuration_only";
+  status: "adapter_available";
   color: string;
   monogram: string;
 }
@@ -28,7 +28,12 @@ export const providers: ProviderManifest[] = [
     category: "advertising",
     description: "Search and YouTube acquisition in one account.",
     capabilities: ["ads.read", "conversions.submit"],
-    credentialFields: [],
+    credentialFields: [
+      { key: "clientId", label: "OAuth client ID" },
+      { key: "clientSecret", label: "OAuth client secret" },
+      { key: "refreshToken", label: "OAuth refresh token" },
+      { key: "developerToken", label: "Developer token" },
+    ],
     color: "#4285f4",
     monogram: "G",
   },
@@ -37,7 +42,7 @@ export const providers: ProviderManifest[] = [
     name: "HubSpot",
     category: "crm",
     description: "Contacts, opportunities and sales activity.",
-    capabilities: ["contacts.read", "opportunities.read"],
+    capabilities: ["contacts.read"],
     credentialFields: [{ key: "accessToken", label: "Private app token" }],
     color: "#ec7956",
     monogram: "H",
@@ -47,8 +52,10 @@ export const providers: ProviderManifest[] = [
     name: "Custom CRM",
     category: "crm",
     description: "An explicit contract for your independent CRM adapter.",
-    capabilities: ["contacts.read", "opportunities.read"],
-    credentialFields: [{ key: "apiKey", label: "API key" }],
+    capabilities: ["contacts.read"],
+    credentialFields: [
+      { key: "webhookSecret", label: "Webhook signing secret" },
+    ],
     color: "#6d63c7",
     monogram: "C",
   },
@@ -57,8 +64,11 @@ export const providers: ProviderManifest[] = [
     name: "Outpero",
     category: "calling",
     description: "Call outcomes, transcripts and response activity.",
-    capabilities: ["calls.read", "calls.schedule"],
-    credentialFields: [{ key: "apiKey", label: "API token" }],
+    capabilities: ["calls.schedule", "calls.webhook"],
+    credentialFields: [
+      { key: "leadSecret", label: "Lead intake secret" },
+      { key: "webhookSecret", label: "Webhook signing secret" },
+    ],
     color: "#9c65bd",
     monogram: "O",
   },
@@ -67,10 +77,11 @@ export const providers: ProviderManifest[] = [
     name: "Razorpay",
     category: "payments",
     description: "Captured payments, refunds and reconciliation.",
-    capabilities: ["payments.read", "refunds.read"],
+    capabilities: ["checkout.create", "payments.read", "refunds.read"],
     credentialFields: [
       { key: "keyId", label: "Key ID" },
       { key: "keySecret", label: "Key secret" },
+      { key: "webhookSecret", label: "Webhook signing secret" },
     ],
     color: "#3867cb",
     monogram: "R",
@@ -80,8 +91,11 @@ export const providers: ProviderManifest[] = [
     name: "Stripe",
     category: "payments",
     description: "Payment evidence across currencies and markets.",
-    capabilities: ["payments.read", "refunds.read"],
-    credentialFields: [{ key: "secretKey", label: "Restricted secret key" }],
+    capabilities: ["checkout.create", "payments.read", "refunds.read"],
+    credentialFields: [
+      { key: "secretKey", label: "Restricted secret key" },
+      { key: "webhookSecret", label: "Webhook signing secret" },
+    ],
     color: "#7660df",
     monogram: "S",
   },
@@ -90,7 +104,7 @@ export const providers: ProviderManifest[] = [
     name: "OpenAI",
     category: "ai",
     description: "Structured analysis with evidence and usage budgets.",
-    capabilities: ["ai.structured", "ai.transcribe"],
+    capabilities: ["ai.structured"],
     credentialFields: [{ key: "apiKey", label: "API key" }],
     color: "#319280",
     monogram: "O",
@@ -110,8 +124,12 @@ export const providers: ProviderManifest[] = [
     name: "WhatsApp Cloud",
     category: "messaging",
     description: "Approved templates and message delivery evidence.",
-    capabilities: ["messages.read", "messages.send"],
-    credentialFields: [{ key: "accessToken", label: "Access token" }],
+    capabilities: ["messages.send", "messages.webhook"],
+    credentialFields: [
+      { key: "accessToken", label: "Access token" },
+      { key: "appSecret", label: "App secret" },
+      { key: "verifyToken", label: "Webhook verification token" },
+    ],
     color: "#36a881",
     monogram: "W",
   },
@@ -120,15 +138,18 @@ export const providers: ProviderManifest[] = [
     name: "Amazon SES",
     category: "messaging",
     description: "Email delivery, bounces and suppression states.",
-    capabilities: ["messages.read", "messages.send"],
-    credentialFields: [],
+    capabilities: ["messages.send", "messages.webhook"],
+    credentialFields: [
+      { key: "accessKeyId", label: "Access key ID" },
+      { key: "secretAccessKey", label: "Secret access key" },
+    ],
     color: "#d19337",
     monogram: "S",
   },
 ].map((p) => ({
   ...p,
   category: p.category as Category,
-  status: "configuration_only" as const,
+  status: "adapter_available" as const,
 }));
 
 export interface ConnectorContext {
@@ -154,15 +175,4 @@ export interface ConnectorAdapter {
     context: ConnectorContext,
   ): Promise<{ status: "healthy" | "degraded"; checkedAt: string }>;
   pull(context: ConnectorContext, cursor?: string): Promise<ChangePage>;
-}
-export class ConnectorUnavailable extends Error {
-  readonly code = "ADAPTER_NOT_IMPLEMENTED";
-  constructor(provider: string) {
-    super(
-      `${provider} is configurable but has no certified adapter in this milestone.`,
-    );
-  }
-}
-export function adapterFor(provider: string): ConnectorAdapter {
-  throw new ConnectorUnavailable(provider);
 }

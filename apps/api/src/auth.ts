@@ -139,6 +139,7 @@ export async function sessionView(auth: AuthContext): Promise<SessionView> {
       name: user.name,
       email: user.email,
       mfaEnabled: user.mfaEnabled,
+      emailVerified: !!user.emailVerifiedAt,
     },
     tenants: tenants.map((t) => ({
       id: t._id,
@@ -147,6 +148,7 @@ export async function sessionView(auth: AuthContext): Promise<SessionView> {
       timezone: t.timezone,
       demo: t.demo,
       role: memberships.find((m) => m.tenantId === t._id)!.role as Role,
+      retentionDays: t.retentionDays,
       firstResponseMinutes: t.firstResponseMinutes,
       attributionModel: t.attributionModel,
     })),
