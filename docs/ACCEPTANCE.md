@@ -37,7 +37,7 @@ Desktop Chromium local demo:
 
 - Verified integration controls, team/seats/billing configuration status and saving workspace preferences.
 
-Local release checks: 66 tests pass across 9 files; TypeScript and production build pass; production dependency audit reports zero vulnerabilities. The [dashboard screenshot](screenshots/journey-verified.jpg) records the synthetic walkthrough. Screenshots are implementation evidence, not a claim that real provider accounts are connected. The current cloud browser does not expose a supported viewport-resize API; a physical/narrow-device mobile pass remains a release gate.
+The v0.2 release passed 66 tests across 9 files, TypeScript, production build and production dependency audit with zero vulnerabilities. The subsequent startup regression adds a deliberately slow API and an occupied-port failure check; the current commit's CI is authoritative for the expanded suite. The [dashboard screenshot](screenshots/journey-verified.jpg) records the synthetic walkthrough. Screenshots are implementation evidence, not a claim that real provider accounts are connected. The current cloud browser does not expose a supported viewport-resize API; a physical/narrow-device mobile pass remains a release gate.
 
 ## External acceptance before live operation
 

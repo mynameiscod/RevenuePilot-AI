@@ -2,6 +2,8 @@
 
 ## Local use and troubleshooting
 
+The launcher waits for its API child to connect to MongoDB and listen before starting Vite. If an older checkout logs `ECONNREFUSED 127.0.0.1:4000` immediately before `RevenuePilot API ready on 4000`, refresh once after that ready message, then pull the latest code and restart to remove the startup race. An error that continues after readiness is a different failure: inspect the API process output. A failed API startup or a 60-second readiness timeout stops the launcher rather than serving a frontend without its backend.
+
 `npm run dev:demo` is the complete ephemeral path: temporary MongoDB replica set, Express API, Vite and direct background projections. It requires no MongoDB service or Redis installation. The Windows MongoDB launcher omits `--nounixsocket`; this fixes the earlier exit-code-2 startup caused by Unix-only arguments. If startup still fails, collect MongoDB's own stderr with `MONGOMS_DEBUG=1` in your shell and inspect that concrete error; an exit code alone does not identify a missing runtime or download problem.
 
 PowerShell:

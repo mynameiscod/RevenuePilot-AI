@@ -35,41 +35,8 @@ if (demo) {
   await connectDatabase(process.env.MONGODB_URI);
   await seedDemo(readConfig());
 }
-const children = [
-  spawn(process.execPath, ["--import", "tsx", "apps/api/src/index.ts"], {
-    stdio: "inherit",
-    env: process.env,
-  }),
-  spawn(process.execPath, ["node_modules/vite/bin/vite.js"], {
-    stdio: "inherit",
-    env: process.env,
-  }),
-];
+const children = [];
 let projectionTimer;
-if (demo) {
-  const { drainOutbox } = await import("../apps/worker/src/project.ts");
-  const { drainJourney } = await import("../apps/worker/src/journey.ts");
-  const { readConfig } = await import("../apps/api/src/config.ts");
-  let draining = false;
-  projectionTimer = setInterval(async () => {
-    if (draining) return;
-    draining = true;
-    try {
-      await drainOutbox();
-      await drainJourney(readConfig());
-    } catch (e) {
-      console.error(e.name);
-    } finally {
-      draining = false;
-    }
-  }, 1000);
-} else
-  children.push(
-    spawn(process.execPath, ["--import", "tsx", "apps/worker/src/index.ts"], {
-      stdio: "inherit",
-      env: process.env,
-    }),
-  );
 let stopping = false;
 async function stop(code = 0) {
   if (stopping) return;
@@ -91,7 +58,75 @@ if (process.send)
   process.on("message", (message) => {
     if (message?.type === "shutdown") void stop();
   });
-for (const child of children)
-  child.on("exit", (code) => {
-    if (!stopping) void stop(code ?? 1);
+function startChild(args, ipc = false) {
+  const child = spawn(process.execPath, args, {
+    stdio: ipc ? ["inherit", "inherit", "inherit", "ipc"] : "inherit",
+    env: process.env,
   });
+  children.push(child);
+  child.once("error", (error) => {
+    console.error(
+      `Could not start ${args.at(-1)}: ${error.code ?? error.name}`,
+    );
+    void stop(1);
+  });
+  child.once("exit", (code) => {
+    if (!stopping) void stop(code || 1);
+  });
+  return child;
+}
+
+try {
+  const api = startChild(["--import", "tsx", "apps/api/src/index.ts"], true);
+  console.log("Waiting for RevenuePilot API before starting the web app…");
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      finish(
+        new Error(
+          "API startup timed out after 60 seconds. Check the API output above.",
+        ),
+      );
+    }, 60000);
+    function finish(error) {
+      clearTimeout(timer);
+      api.off("message", onMessage);
+      api.off("error", onError);
+      api.off("exit", onExit);
+      if (error) reject(error);
+      else resolve();
+    }
+    const onMessage = (message) => {
+      if (message?.type === "revenuepilot:api-ready") finish();
+    };
+    const onError = (error) => finish(error);
+    const onExit = (code) =>
+      finish(new Error(`API exited before startup (code ${code}).`));
+    api.on("message", onMessage);
+    api.once("error", onError);
+    api.once("exit", onExit);
+  });
+  if (!stopping) {
+    if (demo) {
+      const { drainOutbox } = await import("../apps/worker/src/project.ts");
+      const { drainJourney } = await import("../apps/worker/src/journey.ts");
+      const { readConfig } = await import("../apps/api/src/config.ts");
+      let draining = false;
+      projectionTimer = setInterval(async () => {
+        if (draining) return;
+        draining = true;
+        try {
+          await drainOutbox();
+          await drainJourney(readConfig());
+        } catch (e) {
+          console.error(e.name);
+        } finally {
+          draining = false;
+        }
+      }, 1000);
+    } else startChild(["--import", "tsx", "apps/worker/src/index.ts"]);
+    startChild(["node_modules/vite/bin/vite.js"]);
+  }
+} catch (error) {
+  console.error(`RevenuePilot startup failed: ${error.message}`);
+  await stop(1);
+}
