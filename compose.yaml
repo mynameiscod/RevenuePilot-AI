@@ -1,0 +1,106 @@
+# Local development only: database/queue authentication and TLS must be configured
+# before any deployment. Published ports bind exclusively to local loopback.
+name: revenuepilot
+x-service-env: &service-env
+  NODE_ENV: development
+  MONGODB_URI: mongodb://mongo:27017/revenuepilot?replicaSet=rp-rs
+  REDIS_URL: redis://redis:6379
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Run npm run setup:env first}
+  WEB_ORIGIN: http://localhost:3001
+  API_PORT: 4000
+  ALLOW_REGISTRATION: "true"
+  REVENUEPILOT_DEMO: "false"
+services:
+  mongo:
+    image: mongo:7.0.48
+    command: ["mongod", "--replSet", "rp-rs", "--bind_ip_all", "--nounixsocket"]
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: ["mongo_data:/data/db"]
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  mongo-init:
+    image: mongo:7.0.48
+    depends_on:
+      mongo: { condition: service_healthy }
+    entrypoint: ["mongosh", "--host", "mongo:27017", "--quiet", "--eval"]
+    command:
+      [
+        "try { rs.status(); } catch (e) { if (e.code === 94) { rs.initiate({_id:'rp-rs',members:[{_id:0,host:'mongo:27017'}]}); } else { throw e; } } while (!db.hello().isWritablePrimary) { sleep(500); }",
+      ]
+    restart: "no"
+  redis:
+    image: redis:8.10.3-alpine
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory-policy",
+        "noeviction",
+      ]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+  api:
+    build: { context: ., target: service }
+    environment: *service-env
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  collector:
+    build: { context: ., target: service }
+    command: ["node", "dist/collector.mjs"]
+    environment: *service-env
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  worker:
+    build: { context: ., target: service }
+    command: ["node", "dist/worker.mjs"]
+    environment: *service-env
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+  web:
+    build: { context: ., target: web }
+    ports: ["127.0.0.1:3001:8080"]
+    depends_on:
+      api: { condition: service_healthy }
+      collector: { condition: service_healthy }
+    restart: unless-stopped
+volumes:
+  mongo_data:
+  redis_data:
