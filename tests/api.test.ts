@@ -144,12 +144,15 @@ describe("real MongoDB API workflows", () => {
     );
   });
   it("requires origin and CSRF checks for mutations", async () => {
-    await request(app)
-      .post(`/api/v1/tenants/${a.tenantId}/leads`)
-      .set("Cookie", a.cookie)
-      .set("Origin", origin)
-      .send(leadBody)
-      .expect(403);
+    for (const localOrigin of [origin, "http://127.0.0.1:3001"]) {
+      const denied = await request(app)
+        .post(`/api/v1/tenants/${a.tenantId}/leads`)
+        .set("Cookie", a.cookie)
+        .set("Origin", localOrigin)
+        .send(leadBody)
+        .expect(403);
+      expect(denied.body.code).toBe("CSRF_INVALID");
+    }
     await request(app)
       .post(`/api/v1/tenants/${a.tenantId}/leads`)
       .set("Cookie", a.cookie)

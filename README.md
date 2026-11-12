@@ -31,7 +31,11 @@ npm run dev:demo
 
 Open **http://localhost:3001** and choose **Explore sample workspace**. No provider credentials are needed. First startup downloads a MongoDB 7.0.48 binary for your platform. The demo starts a real, temporary MongoDB replica set and projects timeline events directly; it deliberately does not need Redis. Stopping it discards the demonstration database. Do not enter real credentials or personal data into demo mode.
 
-The demo script works without shell-specific environment assignments, including on Windows. The supplied development origin is exactly `http://localhost:3001`; using a different browser origin requires a matching `WEB_ORIGIN`. To change port, also set that origin in `.env`, then use `npm run dev:demo -- --port 3002`.
+The demo script works without shell-specific environment assignments, including on Windows. Local development accepts both `http://localhost:3001` and `http://127.0.0.1:3001`. Only these two hostname aliases, on the configured scheme and port, are accepted; production always requires the exact configured `WEB_ORIGIN`. A trailing slash in that environment value is normalized. Use one browser address consistently because each hostname keeps its own session cookie.
+
+To change the frontend port, use `npm run dev:demo -- --port 3002`. If `.env` already defines `WEB_ORIGIN`, update its port to match; otherwise the demo derives it automatically. Vite also respects `API_PORT` when proxying API calls.
+
+If an older running version shows **This request origin is not allowed**, stop it with Ctrl+C, run `git pull --ff-only origin main`, restart with `npm run dev:demo`, and reload the page. Both local hostnames now work on the configured port. Do not disable the origin or CSRF checks. A remaining error displays the configured address to open; check `WEB_ORIGIN` in `.env` if that address or port differs from the one you intend to use.
 
 If an earlier checkout fails on Windows with MongoDB exit code `2`, update with `git pull --ff-only origin main` and retry. The initial script incorrectly passed the Unix-only `--nounixsocket` option to Windows; demo and test startup now use shared platform-aware options. The `node-abort-controller` npm warning comes from a BullMQ dependency and does not cause this startup failure.
 

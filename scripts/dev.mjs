@@ -14,6 +14,9 @@ for (const [flag, variable] of [
 }
 
 if (process.argv.includes("--demo")) process.env.REVENUEPILOT_DEMO = "true";
+// A custom local port must also be the API's expected browser port when the
+// developer has not explicitly configured WEB_ORIGIN.
+process.env.WEB_ORIGIN ??= `http://localhost:${process.env.PORT ?? 3001}`;
 const demo = process.env.REVENUEPILOT_DEMO === "true";
 let memoryServer;
 if (demo) {

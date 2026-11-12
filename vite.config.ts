@@ -10,6 +10,11 @@ export default defineConfig({
     port: Number(process.env.PORT ?? 3001),
     strictPort: true,
     allowedHosts: process.env.PREVIEW_HOST ? [process.env.PREVIEW_HOST] : [],
-    proxy: { "/api": { target: "http://127.0.0.1:4000", changeOrigin: false } },
+    proxy: {
+      "/api": {
+        target: `http://127.0.0.1:${process.env.API_PORT ?? 4000}`,
+        changeOrigin: false,
+      },
+    },
   },
 });

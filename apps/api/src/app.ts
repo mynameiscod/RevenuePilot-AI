@@ -22,7 +22,7 @@ import {
   stageLabels,
 } from "../../../packages/core/src/contracts.ts";
 import { providers } from "../../../packages/connectors/src/index.ts";
-import type { Config } from "./config.ts";
+import { allowedWebOrigins, type Config } from "./config.ts";
 import {
   User,
   Tenant,
@@ -138,6 +138,7 @@ export function errorHandler(
 }
 export function createApp(config: Config) {
   const app = express();
+  const webOrigins = allowedWebOrigins(config);
   app.disable("x-powered-by");
   app.use((req, res, next) => {
     req.requestId = randomUUID();
@@ -158,17 +159,19 @@ export function createApp(config: Config) {
   });
   app.use(express.json({ limit: "256kb" }));
   app.use("/api/v1/collect", collectorRouter());
-  app.use(cors({ origin: config.WEB_ORIGIN, credentials: true }));
+  app.use(cors({ origin: [...webOrigins], credentials: true }));
   app.use(cookieParser());
   app.use("/api", (req, _res, next) => {
     if (
       !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
-      req.get("Origin") !== config.WEB_ORIGIN
+      !webOrigins.has(req.get("Origin") ?? "")
     )
       throw new AppError(
         403,
         "ORIGIN_DENIED",
-        "This request origin is not allowed.",
+        config.NODE_ENV === "production"
+          ? "This request origin is not allowed."
+          : `This request origin is not allowed. Open RevenuePilot at ${config.WEB_ORIGIN} and try again.`,
       );
     next();
   });

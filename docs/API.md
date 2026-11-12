@@ -4,7 +4,7 @@ Base path: `/api/v1`. Request/response content is JSON. Canonical validated requ
 
 ## Authentication and errors
 
-Authentication uses an opaque HttpOnly session cookie. Production requires HTTPS and a Secure `__Host-` cookie. The session response contains a `csrfToken`; send it as `X-CSRF-Token` on authenticated writes. Every write must also have the exact configured `Origin`. API tokens/service accounts are not implemented yet.
+Authentication uses an opaque HttpOnly session cookie. Production requires HTTPS and a Secure `__Host-` cookie. The session response contains a `csrfToken`; send it as `X-CSRF-Token` on authenticated writes. Production writes require the exact configured `Origin`. Development/test additionally accept `localhost` and `127.0.0.1` as aliases only when a local hostname is configured, preserving its scheme and port. The same allowlist controls CORS; missing/opaque origins, other ports, other hosts and forged forwarding headers do not grant access. This does not change the collector's separate registered-site origin policy. API tokens/service accounts are not implemented yet.
 
 `GET /auth/session` returns `{ user: { id, name, email, mfaEnabled }, tenants: TenantView[], csrfToken }`. UI local storage contains only a selected workspace ID, never the auth token. Membership and permissions are checked independently of that selection.
 

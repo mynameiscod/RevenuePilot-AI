@@ -27,9 +27,10 @@ async function freePorts() {
   }
 }
 
-it("boots the real demo, seeds CodeBegun and serves the API and frontend", async () => {
+it("boots the real demo and signs in through Vite with either local hostname", async () => {
   const [apiPort, webPort] = await freePorts();
   const origin = `http://127.0.0.1:${webPort}`;
+  const configuredOrigin = `http://localhost:${webPort}`;
   const api = `http://127.0.0.1:${apiPort}`;
   const child = fork(
     fileURLToPath(new URL("../scripts/dev.mjs", import.meta.url)),
@@ -41,7 +42,7 @@ it("boots the real demo, seeds CodeBegun and serves the API and frontend", async
         ...process.env,
         NODE_ENV: "test",
         API_PORT: String(apiPort),
-        WEB_ORIGIN: origin,
+        WEB_ORIGIN: `${configuredOrigin}/`,
         VITE_DEV_HOST: "127.0.0.1",
       },
       stdio: ["ignore", "pipe", "pipe", "ipc"],
@@ -86,22 +87,28 @@ it("boots the real demo, seeds CodeBegun and serves the API and frontend", async
       await delay(250);
     }
     expect(ready, `Demo did not become ready:\n${output}`).toBe(true);
-    const login = await fetch(`${api}/api/v1/auth/demo`, {
-      method: "POST",
-      headers: { Origin: origin },
-    });
-    expect(login.status).toBe(200);
-    const session = await login.json();
-    expect(
-      session.tenants.map((tenant: { name: string }) => tenant.name),
-    ).toEqual(["CodeBegun", "Northstar Studio"]);
-    const cookie = login.headers.get("set-cookie")!.split(";")[0];
-    const overview = await fetch(
-      `${api}/api/v1/tenants/${session.tenants[0].id}/overview`,
-      { headers: { Cookie: cookie } },
-    );
-    expect(overview.status).toBe(200);
-    expect((await overview.json()).leadCount).toBe(48);
+    for (const browserOrigin of [origin, configuredOrigin]) {
+      // Use the same frontend proxy as the browser, not the API port directly.
+      const login = await fetch(`${browserOrigin}/api/v1/auth/demo`, {
+        method: "POST",
+        headers: { Origin: browserOrigin },
+      });
+      expect(login.status).toBe(200);
+      expect(login.headers.get("access-control-allow-origin")).toBe(
+        browserOrigin,
+      );
+      const session = await login.json();
+      expect(
+        session.tenants.map((tenant: { name: string }) => tenant.name),
+      ).toEqual(["CodeBegun", "Northstar Studio"]);
+      const cookie = login.headers.get("set-cookie")!.split(";")[0];
+      const overview = await fetch(
+        `${browserOrigin}/api/v1/tenants/${session.tenants[0].id}/overview`,
+        { headers: { Cookie: cookie } },
+      );
+      expect(overview.status).toBe(200);
+      expect((await overview.json()).leadCount).toBe(48);
+    }
   } finally {
     if (!exited && child.connected) child.send({ type: "shutdown" });
     await Promise.race([completion, delay(10000)]);

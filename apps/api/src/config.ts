@@ -7,12 +7,42 @@ const schema = z.object({
   MONGODB_URI: z.string().min(1),
   REDIS_URL: z.string().default("redis://127.0.0.1:6379"),
   DATA_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i),
-  WEB_ORIGIN: z.url().default("http://localhost:3001"),
+  WEB_ORIGIN: z
+    .url()
+    .refine((value) => {
+      const url = new URL(value);
+      return (
+        ["http:", "https:"].includes(url.protocol) &&
+        !url.username &&
+        !url.password &&
+        url.pathname === "/" &&
+        !url.search &&
+        !url.hash
+      );
+    }, "Use an HTTP(S) origin without credentials, path, query or fragment")
+    .transform((value) => new URL(value).origin)
+    .default("http://localhost:3001"),
   API_PORT: z.coerce.number().default(4000),
   ALLOW_REGISTRATION: z.enum(["true", "false"]).default("true"),
   REVENUEPILOT_DEMO: z.enum(["true", "false"]).default("false"),
 });
 export type Config = z.infer<typeof schema>;
+export function allowedWebOrigins(config: Config): Set<string> {
+  const origins = new Set([config.WEB_ORIGIN]);
+  const url = new URL(config.WEB_ORIGIN);
+  if (
+    config.NODE_ENV !== "production" &&
+    ["localhost", "127.0.0.1"].includes(url.hostname)
+  ) {
+    // Keep the configured scheme and port. No wildcard, request Host header,
+    // other loopback addresses, or production aliases establish trust.
+    for (const host of ["localhost", "127.0.0.1"]) {
+      url.hostname = host;
+      origins.add(url.origin);
+    }
+  }
+  return origins;
+}
 export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = schema.safeParse(env);
   if (!result.success)
