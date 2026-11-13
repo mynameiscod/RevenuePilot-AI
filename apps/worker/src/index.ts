@@ -108,7 +108,10 @@ await dispatch();
 console.log(
   "RevenuePilot worker started. Provider execution follows connection activation and action approval.",
 );
+let stopping = false;
 async function stop() {
+  if (stopping) return;
+  stopping = true;
   clearInterval(timer);
   await worker.close();
   await queue.close();
@@ -118,3 +121,7 @@ async function stop() {
 }
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
+if (process.send)
+  process.on("message", (message: { type?: string } | null) => {
+    if (message?.type === "shutdown") void stop();
+  });

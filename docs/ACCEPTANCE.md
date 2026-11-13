@@ -40,6 +40,8 @@ Desktop Chromium local demo:
 
 The marketing milestone passed **78 tests across 10 files**, TypeScript, production build and production dependency audit with zero vulnerabilities. The startup regression includes a deliberately slow API, an occupied-port failure check and cross-origin SDK delivery. The current commit's CI is authoritative for Windows, Linux and Docker verification.
 
+The shutdown regression adds a real terminal Ctrl+C broadcast in an isolated process group on Linux and an isolated console on Windows. It checks clean exit, closed application ports and the absence of MongoDB cleanup errors after exit. Duplicate IPC shutdown requests and cancellation during temporary database startup are also covered. The console regression reproduced the original `MongoInstance.js` / `MongoServerSelectionError: ECONNREFUSED` trace before the fix.
+
 Marketing-specific desktop browser checks:
 
 - Created a managed Meta campaign link with synthetic account/campaign/ad IDs, opened the hosted form, granted measurement and submitted an enquiry. Verified canonical source IDs in the lead's Marketing source history.

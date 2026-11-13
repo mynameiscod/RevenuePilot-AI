@@ -6,6 +6,10 @@ The launcher waits for its API child to connect to MongoDB and listen before sta
 
 `npm run dev:demo` is the complete ephemeral path: temporary MongoDB replica set, Express API, Vite and direct background projections. It requires no MongoDB service or Redis installation. The Windows MongoDB launcher omits `--nounixsocket`; this fixes the earlier exit-code-2 startup caused by Unix-only arguments. If startup still fails, collect MongoDB's own stderr with `MONGOMS_DEBUG=1` in your shell and inspect that concrete error; an exit code alone does not identify a missing runtime or download problem.
 
+Stop the demo with **Ctrl+C**, then wait for `RevenuePilot stopped.` before restarting it. The launcher waits for application processes and in-flight projections, disconnects database clients, and then stops its temporary replica set. MongoDB runs separately from the terminal's interrupt group so it does not exit in the middle of that cleanup. Repeated stop requests share one cleanup sequence; a stop during database startup waits for that startup to settle before releasing resources.
+
+An older checkout can print `MongoServerSelectionError: connect ECONNREFUSED 127.0.0.1:<random port>` from `MongoInstance.js` / `MongoMemoryServer.stop` after Ctrl+C. This is the cleanup path trying to contact an already-closing temporary database; the random port is not a port you need to configure or open. Pull the latest code and restart. If the application exits before becoming ready, inspect the **first error above** the cleanup trace: the shutdown trace alone does not explain a startup failure. No database reset is required for this fix.
+
 PowerShell:
 
 ```powershell

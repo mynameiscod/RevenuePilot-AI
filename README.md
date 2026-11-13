@@ -18,6 +18,8 @@ Open **http://localhost:3001** (or **http://127.0.0.1:3001**) and click **Explor
 
 The demo downloads MongoDB 7.0.48 on first use, starts a temporary replica set and drains durable work directly without Redis. Stopping it discards its data and encryption key. Use synthetic data only. On Windows the launcher omits Unix-only MongoDB flags and allows up to 60 seconds for a cold database startup after extraction. The deprecated `node-abort-controller` warning is unrelated to MongoDB startup; do not change dependencies just to hide it.
 
+Press **Ctrl+C** once and wait for `RevenuePilot stopped.` before restarting. The launcher closes the app and database clients before stopping temporary MongoDB. See [shutdown troubleshooting](docs/OPERATIONS.md#local-use-and-troubleshooting) if an older checkout prints a refused connection to a random MongoDB port while stopping.
+
 If you get **“This request origin is not allowed”**, use the port in `.env`'s `WEB_ORIGIN`, stop the old process and restart. Development accepts localhost/127.0.0.1 aliases on that same scheme/port; another port is deliberately different. Production accepts its exact HTTPS origin only. See [OPERATIONS.md](docs/OPERATIONS.md) for diagnostics.
 
 ## Start with marketing sources

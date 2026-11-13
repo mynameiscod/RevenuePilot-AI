@@ -21,12 +21,24 @@ const server = createApp(config).listen(config.API_PORT, "0.0.0.0", (error) => {
   // cannot accidentally satisfy this readiness signal.
   process.send?.({ type: "revenuepilot:api-ready" });
 });
-async function stop() {
+let stopping = false;
+function stop() {
+  if (stopping) return;
+  stopping = true;
   server.close(async () => {
-    await mongoose.disconnect();
-    process.exit(0);
+    try {
+      await mongoose.disconnect();
+      process.exit(0);
+    } catch (error) {
+      console.error("API database cleanup failed:", (error as Error).name);
+      process.exit(1);
+    }
   });
   setTimeout(() => process.exit(1), 10000).unref();
 }
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
+if (process.send)
+  process.on("message", (message: { type?: string } | null) => {
+    if (message?.type === "shutdown") stop();
+  });

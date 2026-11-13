@@ -10,6 +10,10 @@ export function memoryMongoOptions(
     replSet: {
       count: 1,
       args: platform === "win32" ? [] : ["--nounixsocket"],
+      // Terminal Ctrl+C must reach the owner, not mongod concurrently with
+      // replica-set shutdown. The library still owns and reaps this child
+      // (including its parent-death watchdog); no persistent service is started.
+      spawn: { detached: true, windowsHide: true },
     },
     binary: { version: "7.0.48" },
   };
