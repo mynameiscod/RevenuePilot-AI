@@ -16,7 +16,7 @@ npm run dev:demo
 
 Open **http://localhost:3001** (or **http://127.0.0.1:3001**) and click **Explore sample workspace**. No login credentials are needed for this option. It signs into a fictional CodeBegun workspace, with Northstar Studio as a separate tenant. To use your own login, choose **Create workspace** and set your own email/password. There is no shared production password.
 
-The demo downloads MongoDB 7.0.48 on first use, starts a temporary replica set and drains durable work directly without Redis. Stopping it discards its data and encryption key. Use synthetic data only. On Windows the launcher omits Unix-only MongoDB flags. The deprecated `node-abort-controller` warning is unrelated to MongoDB startup; do not change dependencies just to hide it.
+The demo downloads MongoDB 7.0.48 on first use, starts a temporary replica set and drains durable work directly without Redis. Stopping it discards its data and encryption key. Use synthetic data only. On Windows the launcher omits Unix-only MongoDB flags and allows up to 60 seconds for a cold database startup after extraction. The deprecated `node-abort-controller` warning is unrelated to MongoDB startup; do not change dependencies just to hide it.
 
 If you get **“This request origin is not allowed”**, use the port in `.env`'s `WEB_ORIGIN`, stop the old process and restart. Development accepts localhost/127.0.0.1 aliases on that same scheme/port; another port is deliberately different. Production accepts its exact HTTPS origin only. See [OPERATIONS.md](docs/OPERATIONS.md) for diagnostics.
 
