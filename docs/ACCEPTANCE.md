@@ -55,3 +55,18 @@ The [marketing screenshot](screenshots/marketing-verified.jpg) records the lates
 For each chosen provider, use its actual sandbox/test account to verify scopes/account identity, real pagination/event shape, rate limits, revocation, signatures and duplicate/reordered events. Test payment failure, asynchronous confirmation, refunds and provider timeouts. Reconcile ad import totals against the provider and record missing coverage. Verify WhatsApp template/body/phone mapping, SES domain/SNS subscription, and Outpero lead intake/correlation/signature mapping. Confirm actual email delivery for account recovery and SaaS invoice/entitlement transitions with configured server price IDs.
 
 Load/chaos testing, production restore measurements, security review, monitoring thresholds, image scans/digest pins and production deployment are not certified by these local tests. No claim of 100% identity coverage, causal ad attribution, bank settlement, delivery, or paid conversions is made without the corresponding evidence.
+
+## Simplified workspace verification
+
+The UI consolidation passes **85 tests across 11 files**, including five regressions in `journey-progress.test.ts`: a manually enrolled status cannot invent milestones; unanswered contact and scheduled demos remain pending; a payment can confirm enrollment without filling skipped steps; refunds require review; finance-restricted users have no payment state or payment-tab navigation. TypeScript and the production build also pass.
+
+Desktop browser checks for the simplified workspace use synthetic sample data:
+
+- Five main destinations and a grouped Settings page replace overlapping journey/setup navigation.
+- Opened a lead from Leads; recorded no answer with a future follow-up, then a connected conversation. The next action and independent progress checkpoints updated correctly.
+- Scheduled a future demo. It remained scheduled rather than attended. ArrowRight/Home navigation selected the corresponding lead tab and moved focus.
+- Created a sandbox payment link from the same lead, simulated capture and saw enrollment confirmation without falsely completing the future demo. A simulated full refund changed both money/enrollment checkpoints to review.
+- Activity, source context, follow-up, demo and payment are reachable from the canonical lead page. Advanced milestones and consent remain collapsed until needed.
+- Confirmed legacy workflow and journey-report bookmarks redirect correctly, Marketing tab keyboard order matches the display, and switching to the empty Northstar workspace resets the view without CodeBegun data.
+
+The screenshot in `screenshots/simplified-journey.jpg` shows the synthetic direct-enrollment scenario with the demo still scheduled. It is UI evidence, not a live CodeBegun conversion. Mobile-device QA and live-provider certification remain the release gates described above.

@@ -55,7 +55,7 @@ export function MarketingSources() {
   const { tenant, refresh, notify } = useWorkspace(),
     action = useAction();
   const [days, setDays] = useState(30),
-    [tab, setTab] = useState("sources"),
+    [tab, setTab] = useState("links"),
     [filter, setFilter] = useState("all"),
     [preset, setPreset] = useState<string | null>(null),
     [created, setCreated] = useState(""),
@@ -99,7 +99,7 @@ export function MarketingSources() {
     <>
       <Heading
         eyebrow="MARKETING SOURCES"
-        title="Every enquiry has a beginning."
+        title="Marketing"
         text="Create campaign links, follow consented visits and see where your leads came from."
       >
         <select
@@ -194,8 +194,8 @@ export function MarketingSources() {
         aria-label="Marketing views"
       >
         {[
-          ["sources", "Sources"],
           ["links", "Campaign links"],
+          ["sources", "Sources"],
           ["evidence", "Source evidence"],
         ].map(([value, label]) => (
           <button
@@ -208,7 +208,7 @@ export function MarketingSources() {
             className={tab === value ? "active" : ""}
             onClick={() => setTab(value)}
             onKeyDown={(event) => {
-              const values = ["sources", "links", "evidence"];
+              const values = ["links", "sources", "evidence"];
               if (
                 !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
               )
@@ -595,7 +595,7 @@ export function MarketingSources() {
                       {filteredLeads.map((l) => (
                         <tr key={l.id}>
                           <td>
-                            <Link to={`/leads/${l.id}/workflow`}>{l.name}</Link>
+                            <Link to={`/leads/${l.id}`}>{l.name}</Link>
                             <small>{l.course}</small>
                           </td>
                           <td>

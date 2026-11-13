@@ -22,22 +22,28 @@ Press **Ctrl+C** once and wait for `RevenuePilot stopped.` before restarting. Th
 
 If you get **“This request origin is not allowed”**, use the port in `.env`'s `WEB_ORIGIN`, stop the old process and restart. Development accepts localhost/127.0.0.1 aliases on that same scheme/port; another port is deliberately different. Production accepts its exact HTTPS origin only. See [OPERATIONS.md](docs/OPERATIONS.md) for diagnostics.
 
+## Find your way around
+
+The main menu has five areas: **Dashboard**, **Leads**, **Follow-ups**, **Marketing** and **Reports**. Forms, providers and account configuration are grouped under **Settings**.
+
+For one person's end-to-end journey, open **Leads → a lead**. The page shows a next action, five independently recorded checkpoints, a timeline and four tabs: **Journey**, **Follow-up**, **Demo**, **Payment** (finance roles). A status change alone never checks off a conversation, demo or enrollment. Existing `/leads/:id/workflow` links redirect to this page.
+
 ## Start with marketing sources
 
-Open **Marketing sources → Create campaign link**. Pick a channel and intake form, generate the URL, open it and submit a synthetic enquiry with optional measurement enabled. Refresh **Campaign links / Source evidence** to verify the visit, accepted enquiry and lead source. Each lead's workflow includes its source history. **Setup & link** also provides a downloadable form for your own allowed website.
+Open **Marketing → Create campaign link**. Pick a channel and intake form, generate the URL, open it and submit a synthetic enquiry with optional measurement enabled. Refresh **Campaign links / Source evidence** to verify the visit, accepted enquiry and lead source. Open **Leads → a lead → Journey** for its source history and complete timeline. **Setup & link** also provides a downloadable form for your own allowed website.
 
 Sources cover Meta, Google, YouTube, organic search/social, referral, email, messaging, direct/offline and custom campaigns. Imported ad costs remain separate from observed browser activity. See [the complete marketing flow and setup guide](docs/MARKETING.md) for counting rules, external-site setup and live-account requirements.
 
 ## Try the complete journey
 
-1. Open **Intake forms → Open form**. Enter an `example.test` contact, select optional measurement if desired, then send the enquiry. Leave the checkout tab open.
-2. Open **Work queue** in the workspace. The assigned first-response task links to the lead's workflow.
-3. Record a contact outcome; qualify the lead from its detail page with a note. Schedule a future demo. After its start time, record attended/no-show and the next step.
-4. On the enquiry confirmation, choose **Simulate successful payment**. No money is charged. Refresh the workflow: a sandbox receipt and enrollment appear once.
-5. Open **Journey & attribution** for milestone coverage, inferred stalled leads, loss reasons, first/last/linear allocation and evidence-separated cash. Historical seed records do not fabricate milestones they never recorded.
-6. Simulate a refund in the workflow. Cash reverses and enrollment becomes **review required**; a counselor/finance owner must decide the enrollment outcome.
-7. **Connections → Integration controls** supports configuration, health check, activation, paginated imports, reviewed commands and webhook history. Test calls/messages/AI are local simulations. Advertising tests use provider test/validation endpoints only after approval; payment tests use provider test keys.
-8. **Team & account** manages invitations, roles, access revocation, sessions, usage, email verification, privacy export/erasure and configured SaaS billing. **Settings → Security** enables TOTP and one-time recovery codes.
+1. Open **Settings → Enquiry forms → Open form**. Enter an `example.test` contact, select optional measurement if desired, then send the enquiry. Leave the checkout tab open.
+2. Open **Follow-ups** in the workspace. The assigned task opens the same lead page used by **Leads**.
+3. Use **Follow-up** to record a contact outcome and **Update status** to qualify the lead with a note. Use **Demo** to schedule a future demo. After its start time, record attended/no-show and the next step.
+4. On the enquiry confirmation, choose **Simulate successful payment**. No money is charged. Refresh the lead’s **Payment** tab: a sandbox receipt and enrollment appear once.
+5. Open **Reports** for milestone coverage, inferred stalled leads, loss reasons, first/last/linear allocation and evidence-separated cash. Historical seed records do not fabricate milestones they never recorded.
+6. Simulate a refund from the lead’s **Payment** tab. Cash reverses and enrollment becomes **review required**; a counselor/finance owner must decide the enrollment outcome.
+7. **Settings → Integrations** supports configuration, health check, activation, paginated imports, reviewed commands and webhook history. Test calls/messages/AI are local simulations. Advertising tests use provider test/validation endpoints only after approval; payment tests use provider test keys.
+8. **Settings → Team & account** manages invitations, roles, access revocation, sessions, usage, email verification, privacy export/erasure and configured SaaS billing. **Settings → Workspace preferences → Security** enables TOTP and one-time recovery codes.
 
 ## Persistent local stack
 

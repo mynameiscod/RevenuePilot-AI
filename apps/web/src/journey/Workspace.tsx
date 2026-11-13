@@ -1,12 +1,6 @@
 import { useState, useRef, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  ExternalLink,
-  Plus,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, ExternalLink, Plus } from "lucide-react";
 import { api, mutate } from "../api";
 import { useLoad, useWorkspace } from "../workspace";
 import {
@@ -16,9 +10,8 @@ import {
   Modal,
   formatMoney,
   timeLabel,
-  StageBadge,
 } from "../components";
-import { can, type LeadView } from "../../../../packages/core/src/contracts.ts";
+import { can } from "../../../../packages/core/src/contracts.ts";
 export const values = (event: FormEvent<HTMLFormElement>) =>
   Object.fromEntries(new FormData(event.currentTarget)) as Record<
     string,
@@ -131,7 +124,7 @@ export function IntakeForms() {
     <>
       <Heading
         eyebrow="ACQUISITION"
-        title="A clear starting point."
+        title="Enquiry forms"
         text="Capture enquiries from any channel, with consent and a counselor assigned."
       >
         <button className="btn btn-primary" onClick={() => setOpen(true)}>
@@ -377,7 +370,7 @@ export function WorkQueue() {
     <>
       <Heading
         eyebrow="COUNSELOR WORKSPACE"
-        title="The next conversation matters."
+        title="Follow-ups"
         text="Follow-ups and scheduled demos, ordered by when they need attention."
       />
       {error ? (
@@ -391,7 +384,7 @@ export function WorkQueue() {
             {data?.tasks.map((t) => (
               <Link
                 className="journey-work-row"
-                to={`/leads/${t.leadId}/workflow`}
+                to={`/leads/${t.leadId}?tab=followup`}
                 key={t._id}
               >
                 <span
@@ -414,7 +407,7 @@ export function WorkQueue() {
             {data?.demos.map((d) => (
               <Link
                 className="journey-work-row"
-                to={`/leads/${d.leadId}/workflow`}
+                to={`/leads/${d.leadId}?tab=demo`}
                 key={d._id}
               >
                 <CalendarDays size={20} />
@@ -448,7 +441,7 @@ const labels: Record<string, string> = {
 export function FlowReport() {
   const [days, setDays] = useState(30),
     [model, setModel] = useState("first_touch");
-  const { refresh } = useWorkspace();
+  const { refresh, tenant } = useWorkspace();
   const { data, error, loading } = useLoad<any>(
     `/journey/analytics?days=${days}`,
   );
@@ -456,8 +449,8 @@ export function FlowReport() {
     <>
       <Heading
         eyebrow="FROM INTEREST TO REVENUE"
-        title="See the journey. Find the gaps."
-        text="Recorded milestones, observed form exits and revenue attribution."
+        title="Reports"
+        text="See the enquiry-to-enrollment funnel and the revenue behind it."
       >
         <select
           className="form-select range-select"
@@ -471,6 +464,11 @@ export function FlowReport() {
             </option>
           ))}
         </select>
+        {can(tenant.role, "revenue.read") && (
+          <Link className="btn btn-outline-secondary" to="/revenue">
+            Payment records <ArrowRight size={16} />
+          </Link>
+        )}
       </Heading>
       {error ? (
         <ErrorBox message={error} retry={refresh} />
@@ -731,404 +729,7 @@ export function FlowReport() {
     </>
   );
 }
-export function LeadWorkflow() {
-  const { leadId } = useParams(),
-    { tenant, prefix, refresh } = useWorkspace(),
-    action = useAction();
-  const { data, error, loading } = useLoad<{
-    lead: LeadView;
-    tasks: any[];
-    demos: any[];
-    milestones: any[];
-    enrollments: any[];
-    orders: any[];
-    calls: any[];
-    sources: any[];
-    consent: any[];
-    suppressed: boolean;
-  }>(`/leads/${leadId}/journey`);
-  const team = useLoad<{ items: { id: string; name: string }[] }>(
-    can(tenant.role, "leads.write") ? "/journey/team" : null,
-  );
-  const [resultDemo, setResultDemo] = useState<any>(null),
-    [checkout, setCheckout] = useState("");
-  const operation = useRef(crypto.randomUUID());
-  async function submitContact(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const v = values(e);
-    const result = await action.run(
-      `/leads/${leadId}/outcomes`,
-      {
-        outcome: v.outcome,
-        note: v.note,
-        ...(v.nextFollowupAt
-          ? { nextFollowupAt: new Date(v.nextFollowupAt).toISOString() }
-          : {}),
-      },
-      "POST",
-      "Contact outcome recorded",
-      operation.current,
-    );
-    if (result) operation.current = crypto.randomUUID();
-  }
-  if (error) return <ErrorBox message={error} retry={refresh} />;
-  if (loading || !data) return <Loading />;
-  const write = can(tenant.role, "leads.write");
-  return (
-    <>
-      <Link to={`/leads/${leadId}`} className="back-link">
-        ← Contact details and timeline
-      </Link>
-      <Heading
-        eyebrow="CONNECTED JOURNEY"
-        title={data.lead.name}
-        text={data.lead.course}
-      >
-        <StageBadge stage={data.lead.stage} />
-      </Heading>
-      {action.error && <ErrorBox message={action.error} />}
-      <section className="panel padded mb-4">
-        <h2>Marketing source history</h2>
-        <p className="muted">
-          Recorded, consented touches. Link and browser tags describe the
-          source; they do not prove the advertising platform attributed a
-          conversion.
-        </p>
-        {data.sources?.length ? (
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Observed</th>
-                  <th>Source / medium</th>
-                  <th>Campaign</th>
-                  <th>Account / campaign / ad IDs</th>
-                  <th>Evidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.sources.map((s) => (
-                  <tr key={s._id}>
-                    <td>{timeLabel(s.occurredAt, tenant.timezone)}</td>
-                    <td>
-                      {s.source}
-                      <small className="d-block muted">
-                        {s.sourceDetail} · {s.medium || "No medium"}
-                      </small>
-                    </td>
-                    <td>{s.campaign || "No campaign"}</td>
-                    <td className="small">
-                      {s.accountId || "—"} / {s.campaignId || "—"} /{" "}
-                      {s.adId || "—"}
-                    </td>
-                    <td>
-                      {s.tagStatus === "managed_link"
-                        ? "Managed campaign link"
-                        : s.tagStatus === "link_unavailable"
-                          ? "Unrecognized or paused link"
-                          : "Browser source tags"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>
-            No consented source history is linked. The lead's recorded source is{" "}
-            {data.lead.channel}; missing tracking is not evidence of a lost
-            lead.
-          </p>
-        )}
-      </section>
-      {data.suppressed && (
-        <div className="info-strip">
-          Outbound contact is suppressed for this lead.
-        </div>
-      )}
-      <div className="two-column">
-        {write && (
-          <section className="panel padded">
-            <h2>Record a conversation</h2>
-            <form onSubmit={submitContact}>
-              <Field label="Outcome">
-                <select className="form-select" name="outcome">
-                  <option value="answered">Connected</option>
-                  <option value="no_answer">No answer</option>
-                  <option value="unreachable">Unreachable</option>
-                  <option value="wrong_number">
-                    Wrong number — stop outreach
-                  </option>
-                  <option value="not_interested">
-                    Not interested — stop outreach
-                  </option>
-                </select>
-              </Field>
-              <Field label="Conversation note">
-                <textarea
-                  name="note"
-                  className="form-control"
-                  rows={3}
-                  minLength={3}
-                  maxLength={1000}
-                  required
-                />
-              </Field>
-              <Field label="Next follow-up (your browser time)">
-                <input
-                  name="nextFollowupAt"
-                  className="form-control"
-                  type="datetime-local"
-                />
-              </Field>
-              <button className="btn btn-primary" disabled={action.busy}>
-                Save outcome
-              </button>
-            </form>
-          </section>
-        )}
-        {write && (
-          <section className="panel padded">
-            <h2>Arrange a demo</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const v = values(e);
-                await action.run(
-                  `/leads/${leadId}/demos`,
-                  {
-                    hostId: v.hostId,
-                    scheduledAt: new Date(v.scheduledAt).toISOString(),
-                    durationMinutes: Number(v.durationMinutes),
-                  },
-                  "POST",
-                  "Demo scheduled",
-                );
-              }}
-            >
-              <Field label="Host">
-                <select name="hostId" className="form-select" required>
-                  {team.data?.items.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Start time (your browser time)">
-                <input
-                  type="datetime-local"
-                  name="scheduledAt"
-                  className="form-control"
-                  required
-                />
-              </Field>
-              <Field label="Duration">
-                <select name="durationMinutes" className="form-select">
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">60 minutes</option>
-                </select>
-              </Field>
-              <button className="btn btn-primary" disabled={action.busy}>
-                Schedule demo
-              </button>
-            </form>
-            <p className="small-note mt-3">
-              Host conflicts are checked before saving. Calendar invites and
-              meeting links are not sent automatically.
-            </p>
-          </section>
-        )}
-      </div>
-      <section className="panel padded mt-4">
-        <h2>Demos and attendance</h2>
-        {data.demos.map((d) => (
-          <div className="journey-count-row" key={d._id}>
-            <div>
-              <strong>{timeLabel(d.scheduledAt, tenant.timezone)}</strong>
-              <p className="mb-0">
-                {d.status.replaceAll("_", " ")} · {d.durationMinutes} minutes
-                {d.outcome ? ` · ${d.outcome.replaceAll("_", " ")}` : ""}
-              </p>
-            </div>
-            {write && d.status === "scheduled" && (
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => setResultDemo(d)}
-              >
-                Record outcome
-              </button>
-            )}
-          </div>
-        ))}
-        {!data.demos.length && <p className="muted">No demos scheduled yet.</p>}
-      </section>
-      <section className="panel padded mt-4">
-        <h2>Payments and enrollment</h2>
-        {can(tenant.role, "revenue.write") && (
-          <PaymentLinkForm leadId={leadId!} onCreated={setCheckout} />
-        )}
-        {checkout && (
-          <div className="success-box">
-            <a href={checkout} target="_blank" rel="noreferrer">
-              Open payment link
-            </a>
-            <input
-              className="form-control"
-              readOnly
-              value={checkout}
-              onFocus={(e) => e.target.select()}
-            />
-          </div>
-        )}
-        {data.orders.map((o) => (
-          <div className="journey-count-row" key={o._id}>
-            <div>
-              <strong>{formatMoney(o.amountMinor, o.currency)}</strong>
-              <p className="mb-0">
-                {o.provider} · {o.mode} · {o.status}
-              </p>
-            </div>
-            {can(tenant.role, "revenue.write") &&
-              o.mode === "sandbox" &&
-              o.status === "paid" && (
-                <button
-                  className="btn btn-sm btn-outline-secondary"
-                  disabled={action.busy}
-                  onClick={() =>
-                    action.run(`/orders/${o._id}/sandbox-refund`, {
-                      cumulativeMinor: o.amountMinor,
-                    })
-                  }
-                >
-                  Simulate full refund
-                </button>
-              )}
-            {can(tenant.role, "revenue.write") && o.mode !== "sandbox" && (
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                disabled={action.busy}
-                onClick={() => action.run(`/orders/${o._id}/reconcile`, {})}
-              >
-                Reconcile status
-              </button>
-            )}
-          </div>
-        ))}
-        {data.enrollments.map((en) => (
-          <div
-            className={en.status === "confirmed" ? "success-box" : "info-strip"}
-            key={en._id}
-          >
-            <CheckCircle2 size={18} />
-            {en.course} · {en.status.replaceAll("_", " ")} ·{" "}
-            {en.evidence.replaceAll("_", " ")}
-          </div>
-        ))}
-        {!data.enrollments.length && (
-          <p className="small-note">
-            A confirmed full payment creates enrollment evidence. A manually
-            selected lead stage does not.
-          </p>
-        )}
-      </section>
-      <section className="panel padded mt-4">
-        <h2>Provider call history</h2>
-        {data.calls.length ? (
-          data.calls.map((c) => (
-            <details className="note-card mb-3" key={c._id}>
-              <summary>
-                {c.status} · {c.durationSeconds ?? 0} seconds ·{" "}
-                {timeLabel(c.endedAt, tenant.timezone)}
-              </summary>
-              <p className="preserve-lines mt-3">
-                {c.summary || "No summary retained."}
-              </p>
-              <p className="preserve-lines small-note">
-                {typeof c.transcript === "string"
-                  ? c.transcript || "No transcript retained."
-                  : JSON.stringify(c.transcript, null, 2)}
-              </p>
-            </details>
-          ))
-        ) : (
-          <p className="muted">
-            No verified provider call events for this lead.
-          </p>
-        )}
-      </section>
-      <section className="panel padded mt-4">
-        <h2>Recorded milestones</h2>
-        <div className="journey-evidence">
-          {data.milestones.map((m) => (
-            <div key={m._id}>
-              <CheckCircle2 size={16} />
-              <div>
-                <strong>{labels[m.type] ?? m.type.replaceAll("_", " ")}</strong>
-                <small>
-                  {timeLabel(m.occurredAt, tenant.timezone)} ·{" "}
-                  {m.evidence.replaceAll("_", " ")}
-                </small>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      {can(tenant.role, "connections.write") && (
-        <LeadConsent leadId={leadId!} consent={data.consent} />
-      )}
-      {resultDemo && (
-        <Modal title="Record demo outcome" close={() => setResultDemo(null)}>
-          {action.error && <ErrorBox message={action.error} />}
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const v = values(e);
-              if (
-                await action.run(
-                  `/demos/${resultDemo._id}`,
-                  { ...v, version: resultDemo.version },
-                  "PATCH",
-                  "Demo outcome recorded",
-                )
-              )
-                setResultDemo(null);
-            }}
-          >
-            <Field label="Attendance">
-              <select className="form-select" name="status">
-                <option value="attended">Attended</option>
-                <option value="no_show">No show</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </Field>
-            <Field label="Next step">
-              <select className="form-select" name="outcome">
-                <option value="interested">Interested</option>
-                <option value="follow_up">Follow up</option>
-                <option value="not_interested">Not interested</option>
-                <option value="not_applicable">Not applicable</option>
-              </select>
-            </Field>
-            <Field label="Note">
-              <textarea
-                name="note"
-                className="form-control"
-                minLength={3}
-                required
-              />
-            </Field>
-            <button className="btn btn-primary" disabled={action.busy}>
-              Save outcome
-            </button>
-          </form>
-        </Modal>
-      )}
-    </>
-  );
-}
-function PaymentLinkForm({
+export function PaymentLinkForm({
   leadId,
   onCreated,
 }: {
@@ -1173,7 +774,13 @@ function PaymentLinkForm({
     </form>
   );
 }
-function LeadConsent({ leadId, consent }: { leadId: string; consent: any[] }) {
+export function LeadConsent({
+  leadId,
+  consent,
+}: {
+  leadId: string;
+  consent: any[];
+}) {
   const action = useAction();
   return (
     <section className="panel padded mt-4">

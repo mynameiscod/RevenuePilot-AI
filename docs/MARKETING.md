@@ -5,11 +5,11 @@ This milestone connects source setup, consented browser activity and an accepted
 ## Walk through the first source
 
 1. Start `npm run dev:demo`, open the printed frontend address, and choose **Explore sample workspace**. Demo data is temporary and disappears when the process stops. For persistent work use the local Docker stack and your own account.
-2. Open **Marketing sources → Create campaign link**. Select Meta Ads, Google Ads, YouTube Ads, organic search/social, referral, email, messaging, direct/offline or another source.
+2. Open **Marketing → Create campaign link**. Select Meta Ads, Google Ads, YouTube Ads, organic search/social, referral, email, messaging, direct/offline or another source.
 3. Choose an active **Intake form**, give the link and campaign readable names, and optionally enter exact ad account, campaign and ad IDs. These must be IDs from your selected account; labels do not establish a cost join. Leave Website page empty to use the hosted form immediately.
 4. Generate and open the URL. On the enquiry form, explicitly grant optional measurement. Submit synthetic contact details using `example.test`. No paid ad or real student is needed for this local check.
-5. Return to Marketing sources and refresh. **Campaign links** shows an observed visit, an accepted enquiry and a new lead. **Source evidence** shows the source, campaign and IDs. Open the lead to inspect **Marketing source history** and its assigned follow-up.
-6. Continue the existing work-queue/sales/demo/payment journey only when desired. This milestone stops at a verified source-to-lead handoff; source tags do not establish a purchase or a provider-reported conversion.
+5. Return to Marketing and refresh. **Campaign links** shows an observed visit, an accepted enquiry and a new lead. **Source evidence** shows the source, campaign and IDs. Open the lead to inspect **Journey → Where this lead came from → Source history** and its assigned follow-up.
+6. Continue the **Leads → Follow-up → Demo → Payment** journey only when desired. This milestone stops at a verified source-to-lead handoff; source tags do not establish a purchase or a provider-reported conversion.
 
 ## External landing pages
 
@@ -73,7 +73,7 @@ Google organic medium maps to Organic, paid Google/YouTube to their advertising 
 - An attempt's first source survives later events and submission. Pausing a link blocks attribution for newly observed attempts; previously captured history remains. Re-enabling does not reconstruct missing observations.
 - The report uses the last 7, 30 or 90 UTC calendar days including today. Lead and attempt cohorts are independently date-filtered; a visit before the window and a lead inside it need not have matching counts. Attempt retention can also reduce historical visit coverage. The evidence table displays only the latest 50 leads in that period; its filter applies to those 50, while summary totals cover the full bounded cohort.
 - Costs use imported provider rows, separate by currency and evidence mode. Same account/source/campaign/ad/day/currency/evidence imported through multiple connections uses the most recently updated row. Exact account/campaign/ad joins report matching source leads; these are not provider-certified conversions, causal results or click-to-lead rates. Missing account IDs do not qualify for joins.
-- The Marketing report does not invent spend or ROAS from sample leads. Use **Integration controls** for explicit paged spend imports and **Journey & attribution** for evidence-separated revenue allocation. A live account needs its own credentials, scope checks, account certification and activation approval.
+- The Marketing report does not invent spend or ROAS from sample leads. Use **Settings → Integrations** for explicit paged spend imports and **Reports** for evidence-separated revenue allocation. A live account needs its own credentials, scope checks, account certification and activation approval.
 
 ## Boundaries and acceptance
 

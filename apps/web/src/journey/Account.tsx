@@ -34,7 +34,7 @@ export function AccountSettings() {
     <>
       <Heading
         eyebrow="WORKSPACE ADMINISTRATION"
-        title="Ready for your team."
+        title="Team & account"
         text="Manage account protection, seats, invitations, billing and privacy."
       />
       {action.error && <ErrorBox message={action.error} />}

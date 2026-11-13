@@ -83,7 +83,7 @@ export function Operations() {
     <>
       <Heading
         eyebrow="INTEGRATION OPERATIONS"
-        title="Connect with control."
+        title="Integrations"
         text="Check access, activate a connection, then review outbound actions."
       >
         <Link to="/connections" className="btn btn-outline-secondary">

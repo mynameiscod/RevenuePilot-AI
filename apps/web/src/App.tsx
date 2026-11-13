@@ -1,9 +1,7 @@
 import {
-  createContext,
   lazy,
   Suspense,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -13,6 +11,7 @@ import {
 import {
   Link,
   NavLink,
+  Navigate,
   Route,
   Routes,
   useLocation,
@@ -25,24 +24,16 @@ import {
   ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
   Bell,
-  CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
-  Clock3,
-  CreditCard,
-  Download,
   ExternalLink,
-  GitBranch,
-  LayoutDashboard,
   LogOut,
   Menu,
-  MoreHorizontal,
   Plus,
   RefreshCw,
   Search,
@@ -65,8 +56,6 @@ import {
   type Overview,
   type ReceiptView,
   type SessionView,
-  type Stage,
-  type TenantView,
 } from "../../../packages/core/src/contracts.ts";
 import type { ProviderManifest } from "../../../packages/connectors/src/index.ts";
 import { api, ApiError, mutate, setCsrf } from "./api";
@@ -84,7 +73,6 @@ import {
   MoneyType,
   StageBadge,
   timeLabel,
-  TrendChart,
 } from "./components";
 
 import {
@@ -113,10 +101,12 @@ import {
   FormPayment,
   WorkQueue,
   FlowReport,
-  LeadWorkflow,
 } from "./journey/Workspace";
 import { Operations } from "./journey/Operations";
 import { AccountSettings } from "./journey/Account";
+import { Dashboard, Setup } from "./journey/Dashboard";
+import { LeadWorkspace } from "./journey/Lead";
+import { primaryNavigation, setupNavigation } from "./navigation";
 const MarketingSources = lazy(() =>
   import("./journey/Marketing").then((module) => ({
     default: module.MarketingSources,
@@ -426,49 +416,19 @@ function Shell({
       return () => clearTimeout(t);
     }
   }, [toast]);
-  useEffect(() => setMobile(false), [location.pathname]);
-  const nav = [
-    { path: "/", label: "Overview", icon: LayoutDashboard },
-    {
-      path: "/marketing",
-      label: "Marketing sources",
-      icon: Target,
-      permission: "marketing.read",
-    },
-    { path: "/journeys", label: "Lead journeys", icon: GitBranch },
-    { path: "/leads", label: "Leads", icon: Users },
-    { path: "/work", label: "Work queue", icon: CalendarDays },
-    { path: "/flow", label: "Journey & attribution", icon: BarChart3 },
-    {
-      path: "/intake",
-      label: "Intake forms",
-      icon: Target,
-      permission: "settings.write",
-    },
-    {
-      path: "/revenue",
-      label: "Revenue",
-      icon: Wallet,
-      permission: "revenue.read",
-    },
-    { path: "/connections", label: "Connections", icon: Unplug },
-    {
-      path: "/operations",
-      label: "Integration controls",
-      icon: Activity,
-      permission: "connections.write",
-    },
-    {
-      path: "/account-settings",
-      label: "Team & account",
-      icon: ShieldCheck,
-      permission: "settings.write",
-    },
-  ];
+  useEffect(() => {
+    setMobile(false);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname]);
+  const nav = primaryNavigation;
   const title =
-    nav.find((n) => n.path !== "/" && location.pathname.startsWith(n.path))
-      ?.label ??
-    (location.pathname === "/settings" ? "Workspace settings" : "Overview");
+    [
+      ...primaryNavigation,
+      ...setupNavigation,
+      { path: "/setup", label: "Settings" },
+      { path: "/revenue", label: "Payments" },
+    ].find((n) => n.path !== "/" && location.pathname.startsWith(n.path))
+      ?.label ?? "Dashboard";
   const ctx: WorkspaceContext = {
     session,
     tenant,
@@ -518,15 +478,19 @@ function Shell({
             </div>
             <ChevronDown size={14} />
           </div>
-          <div className="nav-caption">WORKSPACE</div>
-          <nav>
+          <div className="nav-caption">YOUR WORKSPACE</div>
+          <nav aria-label="Main navigation">
             {nav
-              .filter((n) => !n.permission || can(tenant.role, n.permission))
+              .filter(
+                (n) =>
+                  !("permission" in n) ||
+                  !n.permission ||
+                  can(tenant.role, n.permission),
+              )
               .map((n) => (
                 <NavLink key={n.path} to={n.path} end={n.path === "/"}>
                   <n.icon size={18} />
                   <span>{n.label}</span>
-                  {n.path === "/connections" && <span className="nav-dot" />}
                 </NavLink>
               ))}
           </nav>
@@ -546,11 +510,11 @@ function Shell({
                 </small>
               </div>
             </div>
-            <NavLink className="settings-link" to="/settings">
+            <NavLink className="settings-link" to="/setup">
               <Settings2 size={18} /> Settings
             </NavLink>
             <button className="settings-link" onClick={() => setHelp(true)}>
-              <CircleHelp size={18} /> Help & project status
+              <CircleHelp size={18} /> Help
               <ArrowUpRight size={14} className="ms-auto" />
             </button>
             <div className="user-card">
@@ -636,7 +600,8 @@ function Shell({
           </header>
           <main id="main" className="workspace-main" key={tenant.id}>
             <Routes>
-              <Route path="/" element={<OverviewPage />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/setup" element={<Setup />} />
               <Route
                 path="/marketing"
                 element={
@@ -645,12 +610,15 @@ function Shell({
                   </Suspense>
                 }
               />
-              <Route path="/journeys" element={<Journeys />} />
+              <Route
+                path="/journeys"
+                element={<Navigate to="/flow" replace />}
+              />
               <Route path="/leads" element={<Leads />} />
-              <Route path="/leads/:leadId" element={<LeadDetail />} />
+              <Route path="/leads/:leadId" element={<LeadWorkspace />} />
               <Route
                 path="/leads/:leadId/workflow"
-                element={<LeadWorkflow />}
+                element={<LegacyLeadRoute />}
               />
               <Route path="/work" element={<WorkQueue />} />
               <Route path="/flow" element={<FlowReport />} />
@@ -685,10 +653,10 @@ function Shell({
                 element={
                   <Empty
                     title="Page not found"
-                    text="Return to your workspace overview."
+                    text="Return to your workspace dashboard."
                     action={
                       <Link to="/" className="btn btn-primary">
-                        Overview
+                        Dashboard
                       </Link>
                     }
                   />
@@ -731,7 +699,7 @@ function Shell({
             <div className="info-strip">
               <ShieldCheck size={19} />
               <span>
-                Check and activate providers in Integration controls. Live
+                Open Settings → Integrations to configure providers. Live
                 actions require configured credentials, consent and approval.
               </span>
             </div>
@@ -743,9 +711,8 @@ function Shell({
                 Timeline events are processed by the durable outbox worker.
               </li>
               <li>
-                Journey & attribution combines recorded touch evidence with
-                imported advertising spend. Attribution does not establish
-                causation.
+                Reports combines recorded touch evidence with imported
+                advertising spend. Attribution does not establish causation.
               </li>
             </ul>
             <a
@@ -802,415 +769,6 @@ function PageHeading({
     </div>
   );
 }
-function RangePicker({
-  days,
-  setDays,
-}: {
-  days: number;
-  setDays: (n: number) => void;
-}) {
-  return (
-    <label className="date-select">
-      <CalendarDays size={16} />
-      <select
-        aria-label="Reporting period"
-        value={days}
-        onChange={(e) => setDays(Number(e.target.value))}
-      >
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-        <option value="90">Last 90 days</option>
-      </select>
-      <ChevronDown size={13} />
-    </label>
-  );
-}
-function OverviewPage() {
-  const { tenant, refresh } = useWorkspace();
-  const [days, setDays] = useState(30),
-    [metric, setMetric] = useState<"leads" | "enrolled">("leads");
-  const { data, error, loading } = useLoad<Overview>(`/overview?days=${days}`);
-  return (
-    <>
-      <PageHeading
-        eyebrow="WORKSPACE OVERVIEW"
-        title="Your revenue, in focus."
-        text="Follow the journey. Find the friction. Focus on what moves revenue."
-      >
-        <RangePicker days={days} setDays={setDays} />
-        <Link className="btn btn-outline-secondary" to="/connections">
-          <Plus size={16} /> Add connection
-        </Link>
-      </PageHeading>
-      {error ? (
-        <ErrorBox message={error} retry={refresh} />
-      ) : loading || !data ? (
-        <Loading />
-      ) : (
-        <>
-          <div className="evidence-bar">
-            <div>
-              <span className="live-dot" />
-              <strong>
-                {tenant.demo
-                  ? "You’re exploring a sample workspace"
-                  : "Workspace data is up to date"}
-              </strong>
-              <span>
-                {tenant.demo
-                  ? "All people, activity and receipts are synthetic."
-                  : `Updated ${timeLabel(data.asOf, tenant.timezone)}`}
-              </span>
-            </div>
-            <Link to="/connections">
-              {data.connections.live} live connections
-              <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="metrics-grid">
-            <Metric
-              label="Total leads"
-              value={data.leadCount}
-              detail={`Created in the last ${days} days`}
-              icon={<Users size={18} />}
-            />
-            <Metric
-              label="Qualified opportunities"
-              value={data.qualifiedCount}
-              detail="Qualified, demo or enrolled today"
-              icon={<Target size={18} />}
-            />
-            <Metric
-              label="Net collected cash"
-              value={
-                can(tenant.role, "revenue.read")
-                  ? formatMoney(
-                      data.cashByCurrency[tenant.currency]?.net ?? "0",
-                      tenant.currency,
-                    )
-                  : "—"
-              }
-              detail={
-                can(tenant.role, "revenue.read")
-                  ? tenant.demo
-                    ? "Synthetic receipts less refunds"
-                    : "Manual + verified cash; excludes test payments"
-                  : "Finance permission required"
-              }
-              icon={<Wallet size={18} />}
-              accent
-            />
-            <Metric
-              label="Enrolled"
-              value={data.enrolledCount}
-              detail="Current stage · payment tracked separately"
-              icon={<CheckCircle2 size={18} />}
-            />
-          </div>
-          <div className="overview-middle">
-            <section className="panel chart-panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>Opportunity momentum</h2>
-                  <p>New enquiries by acquisition date</p>
-                </div>
-                <div className="segmented">
-                  <button
-                    className={metric === "leads" ? "active" : ""}
-                    onClick={() => setMetric("leads")}
-                  >
-                    Leads
-                  </button>
-                  <button
-                    className={metric === "enrolled" ? "active" : ""}
-                    onClick={() => setMetric("enrolled")}
-                  >
-                    Enrolled
-                  </button>
-                </div>
-              </div>
-              <div className="chart-key">
-                <i />
-                {metric === "leads"
-                  ? "New leads"
-                  : "Enrolled leads by acquisition date"}
-                <span>Daily · UTC</span>
-              </div>
-              <TrendChart points={data.trend} metric={metric} />
-              <div className="chart-foot">
-                <span>
-                  <span className="dot-purple" />
-                  {tenant.name}
-                </span>
-                <span>
-                  {dateLabel(data.trend[0].date, "UTC")} –{" "}
-                  {dateLabel(data.trend.at(-1)!.date, "UTC")}
-                </span>
-              </div>
-            </section>
-            <section className="panel priority-panel">
-              <div className="panel-heading">
-                <h2>Worth your attention</h2>
-                <span className="soft-icon">
-                  <Sparkles size={17} />
-                </span>
-              </div>
-              <p className="priority-intro">
-                Next steps from your workspace evidence.
-              </p>
-              <Link to="/leads?stage=new" className="priority-item">
-                <span className="priority-icon amber">
-                  <Clock3 size={18} />
-                </span>
-                <div>
-                  <strong>
-                    {data.overdueCount} leads awaiting a first touch
-                  </strong>
-                  <p>
-                    Past your {tenant.firstResponseMinutes}-minute response
-                    target.
-                  </p>
-                  <small>
-                    Review lead queue <ArrowRight size={12} />
-                  </small>
-                </div>
-              </Link>
-              <Link to="/connections" className="priority-item">
-                <span className="priority-icon purple">
-                  <Unplug size={18} />
-                </span>
-                <div>
-                  <strong>Complete the acquisition picture</strong>
-                  <p>
-                    Ad spend is unavailable until a reporting adapter is active.
-                  </p>
-                  <small>
-                    Configure connections <ArrowRight size={12} />
-                  </small>
-                </div>
-              </Link>
-              <div className="priority-note">
-                <ShieldCheck size={14} />
-                Rule-based signals · no AI actions executed
-              </div>
-            </section>
-          </div>
-          <div className="overview-lower">
-            <section className="panel source-panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>Where opportunities come from</h2>
-                  <p>Recorded source and cash in {tenant.currency}</p>
-                </div>
-                {can(tenant.role, "revenue.read") && (
-                  <Link to="/revenue" className="text-link">
-                    View revenue
-                    <ArrowUpRight size={15} />
-                  </Link>
-                )}
-              </div>
-              <div className="table-responsive">
-                <table className="table rp-table">
-                  <thead>
-                    <tr>
-                      <th>Source</th>
-                      <th className="text-end">Leads</th>
-                      <th className="text-end">Qualified</th>
-                      <th className="text-end">Net cash</th>
-                      <th className="text-end">Share of leads</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.channels.map((c) => (
-                      <tr key={c.name}>
-                        <td>
-                          <Channel name={c.name} />
-                        </td>
-                        <td className="text-end">{c.leads}</td>
-                        <td className="text-end">{c.qualified}</td>
-                        <td className="text-end money-cell">
-                          {can(tenant.role, "revenue.read")
-                            ? formatMoney(c.cash, tenant.currency)
-                            : "—"}
-                        </td>
-                        <td>
-                          <div className="share-cell">
-                            <span className="mini-progress">
-                              <i
-                                style={{
-                                  width: `${data.leadCount ? (c.leads / data.leadCount) * 100 : 0}%`,
-                                }}
-                              />
-                            </span>
-                            <span>
-                              {data.leadCount
-                                ? Math.round((c.leads / data.leadCount) * 100)
-                                : 0}
-                              %
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!data.channels.length && (
-                  <Empty
-                    title="Your sources will appear here"
-                    text="Add a lead with its acquisition source to start building the picture."
-                  />
-                )}
-              </div>
-              <div className="panel-foot">
-                Source-linked cash · ad-platform attribution and spend are not
-                yet available
-              </div>
-            </section>
-            <section className="panel pipeline-panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>A pulse on your pipeline</h2>
-                  <p>Current stage · {data.leadCount} leads</p>
-                </div>
-                <GitBranch size={17} className="text-muted" />
-              </div>
-              <div className="pipeline-list">
-                {data.stages.map((s, i) => (
-                  <Link
-                    to={`/leads?stage=${s.key}`}
-                    className="pipeline-row"
-                    key={s.key}
-                  >
-                    <div>
-                      <span className={`pipeline-dot dot-${s.key}`} />
-                      {s.label}
-                      <strong>{s.count}</strong>
-                    </div>
-                    <div className="pipeline-track">
-                      <i
-                        className={`fill-${s.key}`}
-                        style={{
-                          width: `${data.leadCount ? (s.count / data.leadCount) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              <Link to="/journeys" className="panel-bottom-link">
-                Explore lead journeys
-                <ArrowRight size={15} />
-              </Link>
-            </section>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
-function Journeys() {
-  const { refresh, tenant } = useWorkspace();
-  const { data, error, loading } = useLoad<Overview>("/overview?days=30");
-  return (
-    <>
-      <PageHeading
-        eyebrow="JOURNEY INTELLIGENCE"
-        title="Every stage tells a story."
-        text="See where opportunities sit, then open the evidence behind each lead."
-      />
-      <div className="info-strip">
-        <GitBranch size={20} />
-        <span>
-          Each lead appears in its current stage. Historical conversion and
-          drop-off rates require recorded milestone evidence.
-        </span>
-      </div>
-      {error ? (
-        <ErrorBox message={error} retry={refresh} />
-      ) : loading || !data ? (
-        <Loading />
-      ) : (
-        <>
-          <div className="journey-grid">
-            {data.stages.map((s, i) => (
-              <Link
-                key={s.key}
-                to={`/leads?stage=${s.key}`}
-                className="journey-step"
-              >
-                <span className="step-number">0{i + 1}</span>
-                <StageBadge stage={s.key} />
-                <strong>{s.count}</strong>
-                <p>
-                  {data.leadCount
-                    ? Math.round((s.count / data.leadCount) * 100)
-                    : 0}
-                  % of the selected cohort
-                </p>
-                <span className="text-link">
-                  Inspect leads <ArrowRight size={14} />
-                </span>
-              </Link>
-            ))}
-          </div>
-          <div className="two-column">
-            <section className="panel padded">
-              <h2>Before the lead</h2>
-              <p className="muted">
-                Consented website events received in the last 30 days.
-              </p>
-              <dl className="stats-list">
-                <div>
-                  <dt>Page views</dt>
-                  <dd>{data.tracking.pageViews}</dd>
-                </div>
-                <div>
-                  <dt>Form starts</dt>
-                  <dd>{data.tracking.formStarts}</dd>
-                </div>
-                <div>
-                  <dt>Submission attempts</dt>
-                  <dd>{data.tracking.submitAttempts}</dd>
-                </div>
-              </dl>
-              <p className="small-note">
-                A browser submission attempt is not proof of an accepted
-                enquiry. Ad clicks before page load are not individually
-                observable.
-              </p>
-              {can(tenant.role, "settings.write") && (
-                <Link to="/settings" className="text-link">
-                  Register a website <ArrowRight size={14} />
-                </Link>
-              )}
-            </section>
-            <section className="panel padded">
-              <h2>Response coverage</h2>
-              <p className="muted">
-                A practical queue for the next conversation.
-              </p>
-              <div className="response-number">
-                {data.overdueCount}
-                <span>uncontacted leads beyond the response target</span>
-              </div>
-              <p className="small-note">
-                The current target is {tenant.firstResponseMinutes} elapsed
-                minutes. Work queue shows follow-ups and demos; each lead’s
-                workflow contains provider call evidence.
-              </p>
-              <Link to="/leads?stage=new" className="btn btn-outline-primary">
-                Open first-touch queue
-                <ArrowRight size={15} />
-              </Link>
-            </section>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
 function Leads() {
   const { tenant, refresh } = useWorkspace();
   const [params, setParams] = useSearchParams(),
@@ -1236,8 +794,8 @@ function Leads() {
     <>
       <PageHeading
         eyebrow="OPPORTUNITY WORKSPACE"
-        title="Good conversations start here."
-        text="Keep your next action, course interest and lead history in one place."
+        title="Leads"
+        text="Open a lead to see its full journey and take the next step."
       >
         {can(tenant.role, "leads.write") && (
           <button className="btn btn-primary" onClick={() => setCreate(true)}>
@@ -1509,228 +1067,10 @@ function LeadForm({ close }: { close: () => void }) {
   );
 }
 
-function LeadDetail() {
-  const { leadId } = useParams(),
-    { tenant, prefix, refresh, notify } = useWorkspace();
-  const { data, error, loading } = useLoad<{
-    lead: LeadView;
-    events: {
-      id: string;
-      type: string;
-      title: string;
-      detail: string;
-      occurredAt: string;
-    }[];
-  }>(`/leads/${leadId}`);
-  const [modal, setModal] = useState<"stage" | "contact" | null>(null),
-    [actionError, setActionError] = useState(""),
-    [busy, setBusy] = useState(false);
-  const actionKey = useRef(crypto.randomUUID());
-  async function save(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const values = formValues(e);
-    setBusy(true);
-    setActionError("");
-    try {
-      await mutate(
-        `${prefix}/leads/${leadId}/${modal}`,
-        modal === "stage" ? { ...values, version: data!.lead.version } : values,
-        modal === "stage" ? "PATCH" : "POST",
-        actionKey.current,
-      );
-      setModal(null);
-      refresh();
-      setTimeout(refresh, 1500);
-      notify("Lead activity saved");
-    } catch (e) {
-      setActionError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  if (error) return <ErrorBox message={error} retry={refresh} />;
-  if (loading || !data) return <Loading />;
-  const lead = data.lead;
-  return (
-    <>
-      <Link className="back-link" to="/leads">
-        <ChevronLeft size={15} /> All leads
-      </Link>
-      <PageHeading
-        eyebrow="LEAD WORKSPACE"
-        title={lead.name}
-        text={`${lead.course} · Enquiry received ${dateLabel(lead.createdAt, tenant.timezone)}`}
-      >
-        <Link
-          to={`/leads/${leadId}/workflow`}
-          className="btn btn-outline-secondary"
-        >
-          Open connected journey <ArrowRight size={15} />
-        </Link>
-        <StageBadge stage={lead.stage} />
-        {can(tenant.role, "leads.write") && (
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setModal("stage");
-              setActionError("");
-            }}
-          >
-            Update stage
-            <ChevronDown size={15} />
-          </button>
-        )}
-      </PageHeading>
-      <div className="lead-detail-grid">
-        <section className="panel padded">
-          <div className="panel-heading">
-            <h2>Contact & opportunity</h2>
-            <Users size={18} className="text-muted" />
-          </div>
-          <dl className="detail-list">
-            <dt>Email</dt>
-            <dd>{lead.email || "Not available"}</dd>
-            <dt>Phone</dt>
-            <dd>{lead.phone || "Not available"}</dd>
-            <dt>Course interest</dt>
-            <dd>{lead.course}</dd>
-            <dt>Acquisition source</dt>
-            <dd>
-              <Channel name={lead.channel} />
-            </dd>
-            <dt>Campaign</dt>
-            <dd>{lead.campaign || "No campaign recorded"}</dd>
-            <dt>Last contact attempt</dt>
-            <dd>
-              {lead.lastContactAt
-                ? timeLabel(lead.lastContactAt, tenant.timezone)
-                : "No attempt recorded"}
-            </dd>
-          </dl>
-          {lead.note && (
-            <div className="note-card">
-              <strong>Enquiry note</strong>
-              <p>{lead.note}</p>
-            </div>
-          )}
-        </section>
-        <section className="panel padded timeline-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>The journey so far</h2>
-              <p>Recorded evidence, in order</p>
-            </div>
-            {can(tenant.role, "leads.write") && (
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => {
-                  setModal("contact");
-                  setActionError("");
-                  actionKey.current = crypto.randomUUID();
-                }}
-              >
-                <Plus size={14} /> Log contact
-              </button>
-            )}
-          </div>
-          {!data.events.length ? (
-            <Empty
-              title="Activity is being prepared"
-              text="The worker processes new timeline events shortly after a change. Refresh to check."
-              action={
-                <button
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={refresh}
-                >
-                  Refresh timeline
-                </button>
-              }
-            />
-          ) : (
-            <ol className="timeline">
-              {data.events.map((e, i) => (
-                <li key={e.id}>
-                  <span className={`timeline-node ${i === 0 ? "current" : ""}`}>
-                    {e.type.includes("payment") ? (
-                      <Wallet size={14} />
-                    ) : e.type.includes("contact") ? (
-                      <Users size={14} />
-                    ) : (
-                      <Check size={14} />
-                    )}
-                  </span>
-                  <div>
-                    <time>{timeLabel(e.occurredAt, tenant.timezone)}</time>
-                    <h3>{e.title}</h3>
-                    <p>{e.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-          <div className="small-note">
-            <ShieldCheck size={14} /> Stage and payment evidence are recorded
-            separately.
-          </div>
-        </section>
-      </div>
-      {modal && (
-        <Modal
-          title={
-            modal === "stage" ? "Update lead stage" : "Record a contact attempt"
-          }
-          close={() => setModal(null)}
-        >
-          <form onSubmit={save}>
-            {actionError && <ErrorBox message={actionError} />}
-            {modal === "stage" && (
-              <Field label="New stage">
-                <select
-                  name="stage"
-                  className="form-select"
-                  defaultValue={stages.find((s) => s !== lead.stage)}
-                >
-                  {stages
-                    .filter((s) => s !== lead.stage)
-                    .map((s) => (
-                      <option key={s} value={s}>
-                        {stageLabels[s]}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-            )}
-            <Field
-              label={
-                modal === "stage" ? "Reason for this change" : "What happened?"
-              }
-            >
-              <textarea
-                name="note"
-                className="form-control"
-                minLength={3}
-                maxLength={1000}
-                rows={4}
-                required
-              />
-            </Field>
-            <div className="form-footer">
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={() => setModal(null)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-primary" disabled={busy}>
-                {busy ? "Saving…" : "Save activity"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-    </>
-  );
+function LegacyLeadRoute() {
+  const { leadId } = useParams();
+  const { search } = useLocation();
+  return <Navigate to={`/leads/${leadId}${search}`} replace />;
 }
 
 function Revenue() {
@@ -1749,7 +1089,7 @@ function Revenue() {
     <>
       <PageHeading
         eyebrow="FINANCIAL EVIDENCE"
-        title="Revenue you can account for."
+        title="Payment records"
         text="Recorded receipts and refunds, with each currency kept separate."
       >
         {can(tenant.role, "revenue.write") && (
@@ -1813,7 +1153,7 @@ function Revenue() {
         <span>
           Evidence labels distinguish manual entries, sandbox simulations,
           provider tests and verified payments. Net cash is not accounting
-          revenue. Journey & attribution separates every evidence type.
+          revenue. Reports separates every evidence type.
         </span>
       </div>
       <section className="panel">
@@ -2111,13 +1451,13 @@ function Connections() {
     <>
       <PageHeading
         eyebrow="YOUR CONNECTED WORKSPACE"
-        title="Your tools. One clear picture."
+        title="Provider catalog"
         text="Configure the providers that will power your revenue journey."
       />
       <div className="info-strip">
         <Unplug size={19} />
         <span>
-          Connections start as encrypted drafts. Open integration controls to
+          Connections start as encrypted drafts. Open Settings → Integrations to
           configure, check and activate them. Outbound actions require approval.
         </span>
       </div>
@@ -2412,7 +1752,7 @@ function WorkspaceSettings({ newWorkspace }: { newWorkspace: () => void }) {
     <>
       <PageHeading
         eyebrow="WORKSPACE CONTROL"
-        title="Make it work for your business."
+        title="Workspace preferences"
         text="Manage your workspace, access and evidence collection."
       >
         <button className="btn btn-outline-secondary" onClick={newWorkspace}>
@@ -2505,9 +1845,8 @@ function WorkspaceSettings({ newWorkspace }: { newWorkspace: () => void }) {
                 />
               </Field>
               <div className="info-strip">
-                The Overview shows cash by recorded source. Journey &
-                attribution compares first-touch, last-touch and linear
-                attribution with observed provider spend.
+                Reports compares first-touch, last-touch and linear attribution
+                with observed provider spend.
               </div>
               <button className="btn btn-primary" disabled={busy}>
                 {busy ? "Saving…" : "Save preferences"}
