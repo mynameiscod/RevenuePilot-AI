@@ -1,3 +1,4 @@
+import { readAcquisitionTouch } from "../../core/src/marketing.ts";
 export type IntakeConsent = { tracking: boolean; advertising: boolean };
 export function createIntake(options: { apiOrigin: string; formKey: string }) {
   const url = new URL(options.apiOrigin);
@@ -16,24 +17,12 @@ export function createIntake(options: { apiOrigin: string; formKey: string }) {
   const attemptId = crypto.randomUUID(),
     anonymousId = crypto.randomUUID();
   let consent: IntakeConsent = { tracking: false, advertising: false };
-  const touch = () => {
-    const params = new URLSearchParams(window.location.search);
-    const value = (key: string, max: number) =>
-      (params.get(key) ?? "").slice(0, max);
-    return {
-      source: value("utm_source", 80) || "Direct",
-      medium: value("utm_medium", 80),
-      campaign: value("utm_campaign", 120),
-      accountId: value("ad_account_id", 100),
-      campaignId: value("utm_id", 100),
-      adId: value("ad_id", 100),
-      clickIds: Object.fromEntries(
-        ["gclid", "gbraid", "wbraid", "fbclid"]
-          .filter((key) => params.has(key))
-          .map((key) => [key, value(key, 256)]),
-      ),
-    };
-  };
+  const acquisition = readAcquisitionTouch(
+    window.location.search,
+    typeof document === "undefined" ? "" : document.referrer,
+    window.location.origin ?? "",
+  );
+  const touch = () => acquisition;
   const send = async (path: string, body?: unknown) => {
     const response = await fetch(`${endpoint}${path}`, {
       method: body ? "POST" : "GET",

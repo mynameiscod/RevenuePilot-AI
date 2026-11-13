@@ -1,3 +1,4 @@
+import { readAcquisitionTouch } from "../../../../packages/core/src/marketing.ts";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
@@ -22,24 +23,14 @@ export function PublicEnquiry() {
   const attemptId = useRef(crypto.randomUUID()),
     anonymousId = useRef(crypto.randomUUID()),
     started = useRef(false);
-  const touch = () => {
-    const params = new URLSearchParams(window.location.search);
-    const get = (name: string, max: number) =>
-      (params.get(name) ?? "").slice(0, max);
-    return {
-      source: get("utm_source", 80) || "Direct",
-      medium: get("utm_medium", 80),
-      campaign: get("utm_campaign", 120),
-      accountId: get("ad_account_id", 100),
-      campaignId: get("utm_id", 100),
-      adId: get("ad_id", 100),
-      clickIds: Object.fromEntries(
-        ["gclid", "fbclid", "gbraid", "wbraid"]
-          .filter((k) => params.has(k))
-          .map((k) => [k, get(k, 256)]),
-      ),
-    };
-  };
+  const acquisition = useRef(
+    readAcquisitionTouch(
+      window.location.search,
+      document.referrer,
+      window.location.origin,
+    ),
+  );
+  const touch = () => acquisition.current;
   useEffect(() => {
     api<FormInfo>(`/public/forms/${publicKey}`)
       .then(setForm)

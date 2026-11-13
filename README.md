@@ -20,6 +20,12 @@ The demo downloads MongoDB 7.0.48 on first use, starts a temporary replica set a
 
 If you get **“This request origin is not allowed”**, use the port in `.env`'s `WEB_ORIGIN`, stop the old process and restart. Development accepts localhost/127.0.0.1 aliases on that same scheme/port; another port is deliberately different. Production accepts its exact HTTPS origin only. See [OPERATIONS.md](docs/OPERATIONS.md) for diagnostics.
 
+## Start with marketing sources
+
+Open **Marketing sources → Create campaign link**. Pick a channel and intake form, generate the URL, open it and submit a synthetic enquiry with optional measurement enabled. Refresh **Campaign links / Source evidence** to verify the visit, accepted enquiry and lead source. Each lead's workflow includes its source history. **Setup & link** also provides a downloadable form for your own allowed website.
+
+Sources cover Meta, Google, YouTube, organic search/social, referral, email, messaging, direct/offline and custom campaigns. Imported ad costs remain separate from observed browser activity. See [the complete marketing flow and setup guide](docs/MARKETING.md) for counting rules, external-site setup and live-account requirements.
+
 ## Try the complete journey
 
 1. Open **Intake forms → Open form**. Enter an `example.test` contact, select optional measurement if desired, then send the enquiry. Leave the checkout tab open.
@@ -48,6 +54,7 @@ The supplied Compose file is **local development**, not a production deployment 
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tenant security   | Current membership on every request; owner/admin/analyst/counselor/finance/viewer; counselor assignment scope; role-safe PII; CSRF and exact origins                                                      |
 | Accounts          | Registration, password recovery, verification, invitation acceptance, last-owner protection, session revocation, TOTP recovery codes                                                                      |
+| Marketing sources | Tenant/form-bound campaign links, source presets, external intake SDK/form, first observed source, source evidence and exact imported ad-cost joins                                                       |
 | Acquisition       | Origin-scoped forms; separate enquiry/marketing/tracking/ad consent; accepted lead receipts; contact/course deduplication; round-robin assignment; follow-up queue                                        |
 | Sales             | Contact outcomes, explicit loss notes, conflict-checked demos, attendance and follow-up tasks, provider call history                                                                                      |
 | Payments          | Stripe Checkout and Razorpay Payment Links; signature-checked durable inbox; provider reconciliation; exact amount/currency/mode matching; cumulative refunds; one order per lead/offer                   |
@@ -65,6 +72,7 @@ No OAuth self-service authorization UI, third-party CRM writeback, calendar invi
 
 ## Engineering references
 
+- [Marketing source flow and website setup](docs/MARKETING.md)
 - [Architecture and data boundaries](docs/ARCHITECTURE.md)
 - [Collection schemas and indexes](docs/SCHEMAS.md)
 - [API contracts](docs/API.md) and [generated request JSON schemas](docs/REQUEST_SCHEMAS.json)

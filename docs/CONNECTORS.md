@@ -67,10 +67,10 @@ Stripe uses its SDK raw-body signature check with timestamp tolerance. Razorpay 
 
 ## Website integration without modifying another application
 
-The hosted form works immediately. External sites may optionally import the build output `/revenuepilot-sdk.js`, configure their exact origin on the intake form and explicitly call the intake methods:
+See [MARKETING.md](MARKETING.md) for the campaign builder, downloadable complete website form and counting rules. The hosted form works immediately. External sites may optionally import the build output `/revenuepilot-sdk.js`, configure their exact origin on the intake form and explicitly call the intake methods:
 
 ```ts
-import { createIntake } from "/revenuepilot-sdk.js";
+import { createIntake } from "https://your-revenuepilot-origin.example/revenuepilot-sdk.js";
 const intake = createIntake({
   apiOrigin: "https://your-revenuepilot-origin.example",
   formKey: "YOUR_PUBLIC_FORM_KEY",
@@ -89,7 +89,7 @@ const confirmation = await intake.submit({
 // Navigate to your RevenuePilot /checkout#<acceptanceToken> if payment is desired.
 ```
 
-`createIntake` uses memory-only pseudonymous IDs, omits browser credentials and reuses its attempt ID across retries. It reads only allowlisted UTM/click fields after consent. Exact ad joins use `utm_source`, `ad_account_id` (numeric account without act_), `utm_id` (campaign ID) and `ad_id`. `utm_campaign` is a readable label. Never put email/phone/name in campaign URLs. Consent decline still allows an enquiry; no tracking touch is saved.
+`createIntake` uses memory-only pseudonymous IDs, omits browser credentials and reuses its attempt ID across retries. It retains initial allowlisted UTM/click fields and a referrer hostname in memory, and sends source observations only after consent. Managed links also supply `rp_link`, which resolves to tenant/form-bound canonical metadata. Exact ad joins use `utm_source`, `ad_account_id` (numeric account without act_), `utm_id` (campaign ID) and `ad_id`. `utm_campaign` is a readable label. Never put email/phone/name in campaign URLs. Consent decline still allows an enquiry; no tracking touch is saved.
 
 The separate `createTracker` API is a generic telemetry collector with bounded memory queue/retry and explicit consent. It does not create accepted leads or monetary evidence. See its executable types/tests. Neither SDK is installed into any CodeBegun site or LMS by this change.
 

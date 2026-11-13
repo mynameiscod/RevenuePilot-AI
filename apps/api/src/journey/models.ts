@@ -57,6 +57,26 @@ export const Attempt = model(
     [{ expiresAt: 1 }, { expireAfterSeconds: 0 }],
   ],
 );
+export const MarketingLink = model(
+  "MarketingLink",
+  {
+    publicKey: { type: String, required: true },
+    name: String,
+    formId: String,
+    preset: String,
+    channel: String,
+    source: String,
+    medium: String,
+    campaign: String,
+    accountId: String,
+    campaignId: String,
+    adId: String,
+    landingUrl: String,
+    active: { type: Boolean, default: true },
+    createdBy: String,
+  },
+  [[{ publicKey: 1 }, { unique: true }], [{ tenantId: 1, createdAt: -1 }]],
+);
 export const Acceptance = model(
   "LeadAcceptance",
   {
@@ -95,6 +115,9 @@ export const Touch = model(
     clickIds: Schema.Types.Mixed,
     occurredAt: Date,
     eligible: Boolean,
+    marketingLinkId: String,
+    sourceDetail: String,
+    tagStatus: String,
   },
   [
     [{ tenantId: 1, eventKey: 1 }, { unique: true }],
@@ -406,6 +429,7 @@ export const CallRecord = model(
   [[{ tenantId: 1, connectionId: 1, externalId: 1 }, { unique: true }]],
 );
 export const allJourneyModels = [
+  MarketingLink,
   Form,
   Attempt,
   Acceptance,

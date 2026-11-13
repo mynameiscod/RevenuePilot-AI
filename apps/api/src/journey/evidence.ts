@@ -1,5 +1,6 @@
 import type { ClientSession } from "mongoose";
 import { Milestone, Touch } from "./models.ts";
+import { classifySource } from "../../../../packages/core/src/marketing.ts";
 export async function milestone(
   tenantId: string,
   leadId: string,
@@ -17,14 +18,4 @@ export async function milestone(
     { upsert: true, session },
   );
 }
-export function channelFor(source: string) {
-  const value = source.toLowerCase();
-  if (["meta", "facebook", "instagram", "fb", "meta ads"].includes(value))
-    return "Meta Ads";
-  if (["google", "google ads"].includes(value)) return "Google Ads";
-  if (["youtube", "youtube ads"].includes(value)) return "YouTube Ads";
-  if (value === "organic") return "Organic";
-  if (value === "referral") return "Referral";
-  if (["direct", ""].includes(value)) return "Direct";
-  return "Other";
-}
+export const channelFor = classifySource;

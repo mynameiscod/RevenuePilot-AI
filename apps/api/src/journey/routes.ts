@@ -13,6 +13,7 @@ import {
 import { Lead, Membership, Tenant, User } from "../models.ts";
 import {
   CallRecord,
+  Touch,
   Form,
   Followup,
   Appointment,
@@ -264,6 +265,7 @@ export function journeyRouter(config: Config) {
         consent,
         suppression,
         calls,
+        sources,
       ] = await Promise.all([
         Followup.find(scope).sort({ dueAt: -1 }).limit(100).lean(),
         Appointment.find(scope).sort({ scheduledAt: -1 }).limit(100).lean(),
@@ -283,6 +285,13 @@ export function journeyRouter(config: Config) {
               .limit(50)
               .lean()
           : [],
+        Touch.find(scope)
+          .select(
+            "source sourceDetail medium campaign accountId campaignId adId occurredAt tagStatus eligible marketingLinkId",
+          )
+          .sort({ occurredAt: 1, _id: 1 })
+          .limit(100)
+          .lean(),
       ]);
       res.json({
         lead: leadView(lead, req.auth!.role!, config.DATA_ENCRYPTION_KEY),
@@ -296,6 +305,7 @@ export function journeyRouter(config: Config) {
         orders,
         consent,
         suppressed: !!suppression,
+        sources,
         calls: calls.map(({ summaryCipher, transcriptCipher, ...call }) => ({
           ...call,
           summary: summaryCipher

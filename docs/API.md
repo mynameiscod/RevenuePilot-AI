@@ -45,28 +45,63 @@ Where marked **K**, `Idempotency-Key` is required. Durable key scope is tenant +
 
 Verification/reset token lifetime one hour; invite 72 hours. Links use URL fragments. Unknown account recovery never reveals registration status. Email is delivered only when installation SES account mail is enabled; local preview is not production delivery.
 
+## Marketing sources
+
+| Method/path                   | Request / authorization                           | Success                                                                                                 |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| GET `T/marketing?days=30`     | marketing.read: owner/admin/analyst; days 7/30/90 | `{period,totals,sources,links,advertising,recentLeads,recentLeadsTotal,forms,connections,integration?}` |
+| POST `T/marketing/links`      | settings.write + marketingLinkInput + K           | 201 `{id,url}`; canonical tenant/form-bound campaign URL                                                |
+| PATCH `T/marketing/links/:id` | settings.write + `{active:boolean}`               | `{updated:true}`; pause/enable only; source metadata cannot be edited                                   |
+
+Create example:
+
+```json
+{
+  "name": "Java November Meta campaign",
+  "formId": "UUID_FROM_THIS_TENANT",
+  "preset": "meta",
+  "source": "meta",
+  "medium": "paid_social",
+  "campaign": "java_november",
+  "accountId": "123456",
+  "campaignId": "234567",
+  "adId": "345678",
+  "landingUrl": ""
+}
+```
+
+Preset IDs: meta/google/youtube/organic/social/referral/email/messaging/direct/other. Medium must match the preset; advertising presets also require the preset source. Ad IDs are optional bounded alphanumeric/underscore/hyphen strings. Blank landingUrl selects the hosted form. Custom destinations require an allowed form/app origin, no user credentials/query/fragment, and HTTPS in production. Foreign/inactive form returns 404; mismatched source/medium returns 422. Maximum 500 links per workspace including paused links; creating the 501st returns 429 LINK_LIMIT.
+
+The generated URL contains `rp_link`, `utm_source`, `utm_medium`, `utm_campaign`, and nonempty `ad_account_id`, `utm_id`, `ad_id`. `touchInput.marketingKey` carries `rp_link` from a browser. The server resolves it only within the current form and tenant. Invalid/foreign/paused links accept functional enquiries with Other/link_unavailable and no credited ad IDs. First source is captured once per attempt and retained at submission, including when that link is subsequently paused.
+
+`period` is UTC calendar bounds including today. `totals` includes leads, trackedLeads, observedVisits, acceptedEnquiries, unknownLeads and incompletePaidTags. `sources` contains channel counts. Link rows contain fixed configuration, URL, visits/starts/submissions/unacceptedVisits/acceptedEnquiries/newLeads/lastObservedAt/paidIdsComplete. `recentLeads` contains role-safe lead DTOs and first-source evidence, at most 50; totals use the full bounded cohort. Evidence codes: managed_link/browser_tags/provider_import/recorded_source/no_tracking_consent/link_unavailable/unrecognized/direct. No raw click IDs are returned.
+
+`advertising` contains exact source/account/campaign/ad, currency/evidence, string spendMinor, clicks/impressions, observedDays and matchingSourceLeads (null if IDs missing). Duplicate account-day rows imported through different connections use the latest observation. Currencies and test/live evidence are not combined. Matching leads are browser source associations, not provider conversion claims.
+
+`forms` and `integration.apiOrigin` are available only to owners/admins for setup; analysts receive an empty forms array. Connections expose only id/label/provider/status/mode/health summaries. Reporting bounds return 422 REPORT_TOO_LARGE instead of silently dropping records. See [MARKETING.md](MARKETING.md) for counting, retention and privacy limits.
+
 ## Acquisition and sales
 
-| Method/path                            | Request / authorization                                                      | Success                                                                                                                          |
-| -------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| GET/POST `T/forms`                     | settings.write; POST formInput + K                                           | List / 201 `{id,publicKey,url}`                                                                                                  |
-| PATCH `T/forms/:id`                    | settings.write + `{active}`                                                  | updated; reactivation checks active-form quota                                                                                   |
-| GET `/public/forms/:publicKey`         | Public form origin policy                                                    | name, course, workspaceName, amountMinor/currency, consentVersion, sandboxAvailable                                              |
-| POST `/public/forms/:publicKey/events` | formEventInput; trackingConsent true                                         | 202 accepted observation; never creates a lead                                                                                   |
-| POST `/public/forms/:publicKey/submit` | submissionInput; privacyConsent true, correct consentVersion, empty honeypot | 201 `{accepted:true,acceptanceToken,expiresInSeconds}`; never returns existing contact ID                                        |
-| GET `T/journey/team`                   | leads.write                                                                  | Active eligible host/assignee `{id,name}` items                                                                                  |
-| GET `T/journey/work`                   | leads.read                                                                   | Up to 100 open tasks and 100 scheduled demos, scoped names                                                                       |
-| GET `T/leads`                          | leads.read; q/stage/page/limit                                               | `{items,total,page,limit}`; counselor owns records, PII restricted by role                                                       |
-| POST `T/leads`                         | leads.write + leadInput + K                                                  | 201 `{id}`; lead quota, audit/outbox and milestone                                                                               |
-| GET `T/leads/:leadId`                  | leads.read + scope                                                           | `{lead,events}`; latest 100 timeline events                                                                                      |
-| PATCH `T/leads/:leadId/stage`          | leads.write + `{stage,note,version}`                                         | updated; version conflict 409; qualified/lost milestone                                                                          |
-| POST `T/leads/:leadId/contact`         | leads.write + `{note}` + K                                                   | Legacy contact-attempt record; use outcomes for richer evidence                                                                  |
-| GET `T/leads/:leadId/journey`          | leads.read + scope                                                           | lead, tasks, demos, milestones, enrollments, role-filtered orders/consent/call text, suppression                                 |
-| POST `T/leads/:leadId/outcomes`        | leads.write + contactInput + K                                               | updated; closes open follow-ups, optionally schedules next, suppresses wrong-number/not-interested                               |
-| POST `T/leads/:leadId/demos`           | leads.write + demoInput + K                                                  | 201 `{id}`; eligible host, future time and overlap check                                                                         |
-| PATCH `T/demos/:id`                    | leads.write + demoOutcomeInput                                               | updated; version required; attendance/no-show cannot precede start                                                               |
-| GET `T/journey/analytics?days=30`      | leads.read; 1–90 days                                                        | asOf/start/cohortSize, funnel, tracking, stalls/losses, reviewCount, role-filtered revenue/campaigns/advertising and methodology |
-| GET `T/overview?days=30`               | leads.read; 7/30/90                                                          | Overview, role-filtered cash, current stages/source/trend; test cash excluded outside demo                                       |
+| Method/path                            | Request / authorization                                                      | Success                                                                                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET/POST `T/forms`                     | settings.write; POST formInput + K                                           | List / 201 `{id,publicKey,url}`                                                                                                                                   |
+| PATCH `T/forms/:id`                    | settings.write + `{active}`                                                  | updated; reactivation checks active-form quota                                                                                                                    |
+| GET `/public/forms/:publicKey`         | Public form origin policy                                                    | name, course, workspaceName, amountMinor/currency, consentVersion, sandboxAvailable                                                                               |
+| POST `/public/forms/:publicKey/events` | formEventInput; trackingConsent true                                         | 202 accepted observation; never creates a lead                                                                                                                    |
+| POST `/public/forms/:publicKey/submit` | submissionInput; privacyConsent true, correct consentVersion, empty honeypot | 201 `{accepted:true,acceptanceToken,expiresInSeconds}`; never returns existing contact ID                                                                         |
+| GET `T/journey/team`                   | leads.write                                                                  | Active eligible host/assignee `{id,name}` items                                                                                                                   |
+| GET `T/journey/work`                   | leads.read                                                                   | Up to 100 open tasks and 100 scheduled demos, scoped names                                                                                                        |
+| GET `T/leads`                          | leads.read; q/stage/page/limit                                               | `{items,total,page,limit}`; counselor owns records, PII restricted by role                                                                                        |
+| POST `T/leads`                         | leads.write + leadInput + K                                                  | 201 `{id}`; lead quota, audit/outbox and milestone                                                                                                                |
+| GET `T/leads/:leadId`                  | leads.read + scope                                                           | `{lead,events}`; latest 100 timeline events                                                                                                                       |
+| PATCH `T/leads/:leadId/stage`          | leads.write + `{stage,note,version}`                                         | updated; version conflict 409; qualified/lost milestone                                                                                                           |
+| POST `T/leads/:leadId/contact`         | leads.write + `{note}` + K                                                   | Legacy contact-attempt record; use outcomes for richer evidence                                                                                                   |
+| GET `T/leads/:leadId/journey`          | leads.read + scope                                                           | lead, tasks, demos, milestones, enrollments, sources (up to 100 chronological touches without raw click IDs), role-filtered orders/consent/call text, suppression |
+| POST `T/leads/:leadId/outcomes`        | leads.write + contactInput + K                                               | updated; closes open follow-ups, optionally schedules next, suppresses wrong-number/not-interested                                                                |
+| POST `T/leads/:leadId/demos`           | leads.write + demoInput + K                                                  | 201 `{id}`; eligible host, future time and overlap check                                                                                                          |
+| PATCH `T/demos/:id`                    | leads.write + demoOutcomeInput                                               | updated; version required; attendance/no-show cannot precede start                                                                                                |
+| GET `T/journey/analytics?days=30`      | leads.read; 1–90 days                                                        | asOf/start/cohortSize, funnel, tracking, stalls/losses, reviewCount, role-filtered revenue/campaigns/advertising and methodology                                  |
+| GET `T/overview?days=30`               | leads.read; 7/30/90                                                          | Overview, role-filtered cash, current stages/source/trend; test cash excluded outside demo                                                                        |
 
 Form request: `{name,course,amountMinor,currency,origins,assignees?,consentVersion?}`. Empty assignees means the creating administrator; configured lists round-robin across current active eligible members. Full-enrollment offer amount is immutable; create a new offer for a new price. Currency INR/USD/AED.
 

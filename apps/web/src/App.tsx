@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -115,6 +117,11 @@ import {
 } from "./journey/Workspace";
 import { Operations } from "./journey/Operations";
 import { AccountSettings } from "./journey/Account";
+const MarketingSources = lazy(() =>
+  import("./journey/Marketing").then((module) => ({
+    default: module.MarketingSources,
+  })),
+);
 
 export function App() {
   const location = useLocation();
@@ -422,6 +429,12 @@ function Shell({
   useEffect(() => setMobile(false), [location.pathname]);
   const nav = [
     { path: "/", label: "Overview", icon: LayoutDashboard },
+    {
+      path: "/marketing",
+      label: "Marketing sources",
+      icon: Target,
+      permission: "marketing.read",
+    },
     { path: "/journeys", label: "Lead journeys", icon: GitBranch },
     { path: "/leads", label: "Leads", icon: Users },
     { path: "/work", label: "Work queue", icon: CalendarDays },
@@ -624,6 +637,14 @@ function Shell({
           <main id="main" className="workspace-main" key={tenant.id}>
             <Routes>
               <Route path="/" element={<OverviewPage />} />
+              <Route
+                path="/marketing"
+                element={
+                  <Suspense fallback={<Loading />}>
+                    <MarketingSources />
+                  </Suspense>
+                }
+              />
               <Route path="/journeys" element={<Journeys />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/:leadId" element={<LeadDetail />} />

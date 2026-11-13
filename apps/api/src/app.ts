@@ -71,6 +71,7 @@ import { Command, PaymentOrder, Webhook, SyncRun } from "./journey/models.ts";
 import { collectorRouter } from "./collector.ts";
 import { acquisitionRouter } from "./journey/acquisition.ts";
 import { journeyRouter } from "./journey/routes.ts";
+import { marketingRouter } from "./journey/marketing.ts";
 import { milestone } from "./journey/evidence.ts";
 import {
   checkoutRouter,
@@ -486,6 +487,7 @@ export function createApp(config: Config) {
     res.json(await overview(req.auth!, days));
   });
   router.use(journeyRouter(config));
+  router.use(marketingRouter(config));
   router.use(paymentAdminRouter(config));
   router.use(tenantAccountRouter(config));
   router.use(integrationRouter(config));

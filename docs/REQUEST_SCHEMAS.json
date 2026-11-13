@@ -606,6 +606,9 @@
             "Google Ads",
             "YouTube Ads",
             "Organic",
+            "Organic Social",
+            "Email",
+            "Messaging",
             "Referral",
             "Direct",
             "Other"
@@ -909,6 +912,9 @@
             "Google Ads",
             "YouTube Ads",
             "Organic",
+            "Organic Social",
+            "Email",
+            "Messaging",
             "Referral",
             "Direct",
             "Other"
@@ -1091,6 +1097,10 @@
               "type": "string",
               "maxLength": 100
             },
+            "marketingKey": {
+              "type": "string",
+              "maxLength": 100
+            },
             "clickIds": {
               "default": {},
               "type": "object",
@@ -1188,6 +1198,83 @@
       ],
       "additionalProperties": false
     },
+    "marketingLinkInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "formId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "meta",
+            "google",
+            "youtube",
+            "organic",
+            "social",
+            "referral",
+            "email",
+            "messaging",
+            "direct",
+            "other"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "medium": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "campaign": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "accountId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_-]*$"
+        },
+        "campaignId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_-]*$"
+        },
+        "adId": {
+          "default": "",
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_-]*$"
+        },
+        "landingUrl": {
+          "default": "",
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "name",
+        "formId",
+        "preset",
+        "source",
+        "medium",
+        "campaign"
+      ],
+      "additionalProperties": false
+    },
     "submissionInput": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -1275,6 +1362,10 @@
               "type": "string",
               "maxLength": 100
             },
+            "marketingKey": {
+              "type": "string",
+              "maxLength": 100
+            },
             "clickIds": {
               "default": {},
               "type": "object",
@@ -1350,6 +1441,10 @@
         },
         "adId": {
           "default": "",
+          "type": "string",
+          "maxLength": 100
+        },
+        "marketingKey": {
           "type": "string",
           "maxLength": 100
         },

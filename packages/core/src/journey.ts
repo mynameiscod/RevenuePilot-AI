@@ -8,6 +8,7 @@ export const touchInput = z
     accountId: z.string().max(100).default(""),
     campaignId: z.string().max(100).default(""),
     adId: z.string().max(100).default(""),
+    marketingKey: z.string().max(100).optional(),
     clickIds: z
       .object({
         gclid: z.string().max(256).optional(),
@@ -28,6 +29,46 @@ export const formInput = z
     origins: siteInput.shape.origins,
     assignees: z.array(identifier).max(30).default([]),
     consentVersion: z.string().min(1).max(30).default("1"),
+  })
+  .strict();
+export const marketingLinkInput = z
+  .object({
+    name: z.string().trim().min(2).max(100),
+    formId: identifier,
+    preset: z.enum([
+      "meta",
+      "google",
+      "youtube",
+      "organic",
+      "social",
+      "referral",
+      "email",
+      "messaging",
+      "direct",
+      "other",
+    ]),
+    source: z.string().trim().min(1).max(80),
+    medium: z.string().trim().min(1).max(80),
+    campaign: z.string().trim().min(2).max(120),
+    accountId: z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^[a-zA-Z0-9_-]*$/)
+      .default(""),
+    campaignId: z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^[a-zA-Z0-9_-]*$/)
+      .default(""),
+    adId: z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^[a-zA-Z0-9_-]*$/)
+      .default(""),
+    landingUrl: z.string().max(1000).default(""),
   })
   .strict();
 export const formEventInput = z

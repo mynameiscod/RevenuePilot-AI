@@ -2,18 +2,19 @@
 
 ## Delivered in 0.2
 
-| Workstream               | Implemented scope                                                                                                                         | Evidence                                                          |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Independent architecture | Own repository, database, identity, configuration, containers and synthetic CodeBegun/Northstar tenants                                   | No LMS dependency; executable schemas and architecture docs       |
-| Local startup            | Windows-compatible temporary MongoDB; localhost/127.0.0.1 origin consistency; credential-free sample entry                                | Process smoke/origin regression tests                             |
-| SaaS accounts            | Verification/reset, invitations, role changes/revocation, seats, last owner, sessions, TOTP recovery                                      | Account lifecycle/isolation tests                                 |
-| Acquisition              | Public priced forms, separate consents, telemetry, authoritative deduplicated acceptance, assignment/tasks                                | Concurrent enquiry and quota tests; browser flow                  |
-| Sales                    | Contact outcomes, qualification/loss evidence, scheduled conflict-checked demos, attendance, provider call history                        | API booking/outcome tests; browser flow                           |
-| Money/enrollment         | Stripe/Razorpay adapters, durable raw webhooks, provider reads, sandbox/testing, cumulative refunds, payment-backed enrollment            | Capture/refund concurrency and mismatch tests; browser simulation |
-| Attribution              | First/last/linear 30-day models, exact campaign/ad keys, separate currencies/evidence, observed spend/clicks, inferred stalls             | Integer conservation, spend dedupe and test/live separation tests |
-| Connector operations     | Eleven adapters, strict config, readonly checks, activation, paged sync, approved commands, consent/quiet-hour/cap checks, inbound status | Protocol fixtures, command guards, replay tests                   |
-| Commercialization        | Separate SaaS billing, server-owned price mapping, paid-invoice entitlement reconciliation, usage caps                                    | Billing reconciliation/reordered subscription tests               |
-| Delivery and operations  | Build, dependency audit, Linux/Windows matrix, Docker smoke/isolated restore, technical handover                                          | Current commit's CI and ACCEPTANCE.md                             |
+| Workstream               | Implemented scope                                                                                                                                 | Evidence                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Independent architecture | Own repository, database, identity, configuration, containers and synthetic CodeBegun/Northstar tenants                                           | No LMS dependency; executable schemas and architecture docs       |
+| Local startup            | Windows-compatible temporary MongoDB; localhost/127.0.0.1 origin consistency; credential-free sample entry                                        | Process smoke/origin regression tests                             |
+| SaaS accounts            | Verification/reset, invitations, role changes/revocation, seats, last owner, sessions, TOTP recovery                                              | Account lifecycle/isolation tests                                 |
+| Marketing source flow    | Ten source presets, immutable campaign links, hosted/external capture, first-source history, consent/missing-source coverage, imported cost joins | Marketing API tests, SDK delivery checks, browser walkthrough     |
+| Acquisition              | Public priced forms, separate consents, telemetry, authoritative deduplicated acceptance, assignment/tasks                                        | Concurrent enquiry and quota tests; browser flow                  |
+| Sales                    | Contact outcomes, qualification/loss evidence, scheduled conflict-checked demos, attendance, provider call history                                | API booking/outcome tests; browser flow                           |
+| Money/enrollment         | Stripe/Razorpay adapters, durable raw webhooks, provider reads, sandbox/testing, cumulative refunds, payment-backed enrollment                    | Capture/refund concurrency and mismatch tests; browser simulation |
+| Attribution              | First/last/linear 30-day models, exact campaign/ad keys, separate currencies/evidence, observed spend/clicks, inferred stalls                     | Integer conservation, spend dedupe and test/live separation tests |
+| Connector operations     | Eleven adapters, strict config, readonly checks, activation, paged sync, approved commands, consent/quiet-hour/cap checks, inbound status         | Protocol fixtures, command guards, replay tests                   |
+| Commercialization        | Separate SaaS billing, server-owned price mapping, paid-invoice entitlement reconciliation, usage caps                                            | Billing reconciliation/reordered subscription tests               |
+| Delivery and operations  | Build, dependency audit, Linux/Windows matrix, Docker smoke/isolated restore, technical handover                                                  | Current commit's CI and ACCEPTANCE.md                             |
 
 ## Activation gates requiring external accounts or explicit deployment approval
 

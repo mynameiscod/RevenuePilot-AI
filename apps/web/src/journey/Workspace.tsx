@@ -203,10 +203,11 @@ export function IntakeForms() {
                 </Link>
               </div>
               <p className="small-note mt-3">
-                Append utm_source, utm_medium and utm_campaign to your campaign
-                links. For ad-level matching also include ad_account_id, utm_id
-                (campaign ID) and ad_id. Attribution is recorded when the
-                visitor allows measurement.
+                <Link to="/marketing">
+                  Create a campaign link in Marketing sources
+                </Link>{" "}
+                to keep source and ad IDs consistent. Attribution is recorded
+                when the visitor allows measurement.
               </p>
             </section>
           ))}
@@ -742,6 +743,7 @@ export function LeadWorkflow() {
     enrollments: any[];
     orders: any[];
     calls: any[];
+    sources: any[];
     consent: any[];
     suppressed: boolean;
   }>(`/leads/${leadId}/journey`);
@@ -785,6 +787,60 @@ export function LeadWorkflow() {
         <StageBadge stage={data.lead.stage} />
       </Heading>
       {action.error && <ErrorBox message={action.error} />}
+      <section className="panel padded mb-4">
+        <h2>Marketing source history</h2>
+        <p className="muted">
+          Recorded, consented touches. Link and browser tags describe the
+          source; they do not prove the advertising platform attributed a
+          conversion.
+        </p>
+        {data.sources?.length ? (
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Observed</th>
+                  <th>Source / medium</th>
+                  <th>Campaign</th>
+                  <th>Account / campaign / ad IDs</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.sources.map((s) => (
+                  <tr key={s._id}>
+                    <td>{timeLabel(s.occurredAt, tenant.timezone)}</td>
+                    <td>
+                      {s.source}
+                      <small className="d-block muted">
+                        {s.sourceDetail} · {s.medium || "No medium"}
+                      </small>
+                    </td>
+                    <td>{s.campaign || "No campaign"}</td>
+                    <td className="small">
+                      {s.accountId || "—"} / {s.campaignId || "—"} /{" "}
+                      {s.adId || "—"}
+                    </td>
+                    <td>
+                      {s.tagStatus === "managed_link"
+                        ? "Managed campaign link"
+                        : s.tagStatus === "link_unavailable"
+                          ? "Unrecognized or paused link"
+                          : "Browser source tags"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>
+            No consented source history is linked. The lead's recorded source is{" "}
+            {data.lead.channel}; missing tracking is not evidence of a lost
+            lead.
+          </p>
+        )}
+      </section>
       {data.suppressed && (
         <div className="info-strip">
           Outbound contact is suppressed for this lead.

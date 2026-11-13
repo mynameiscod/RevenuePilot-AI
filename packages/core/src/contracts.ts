@@ -31,12 +31,16 @@ export const channels = [
   "Google Ads",
   "YouTube Ads",
   "Organic",
+  "Organic Social",
+  "Email",
+  "Messaging",
   "Referral",
   "Direct",
   "Other",
 ] as const;
 export const permissions: Record<Role, readonly string[]> = {
   owner: [
+    "marketing.read",
     "leads.read",
     "leads.write",
     "pii.read",
@@ -48,6 +52,7 @@ export const permissions: Record<Role, readonly string[]> = {
     "members.read",
   ],
   admin: [
+    "marketing.read",
     "leads.read",
     "leads.write",
     "pii.read",
@@ -58,7 +63,7 @@ export const permissions: Record<Role, readonly string[]> = {
     "audit.read",
     "members.read",
   ],
-  analyst: ["leads.read", "revenue.read"],
+  analyst: ["leads.read", "revenue.read", "marketing.read"],
   counselor: ["leads.read", "leads.write", "pii.read"],
   finance: ["leads.read", "revenue.read", "revenue.write"],
   viewer: ["leads.read"],

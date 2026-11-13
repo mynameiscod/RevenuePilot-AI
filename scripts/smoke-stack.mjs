@@ -2,6 +2,13 @@
 import assert from "node:assert/strict";
 import { randomUUID, createHmac } from "node:crypto";
 const origin = "http://localhost:3001";
+const sdk = await fetch(`${origin}/revenuepilot-sdk.js`, {
+  headers: { Origin: "https://landing.example.test" },
+});
+assert.equal(sdk.status, 200);
+assert.equal(sdk.headers.get("access-control-allow-origin"), "*");
+assert.match(sdk.headers.get("content-type"), /javascript/);
+assert.match(await sdk.text(), /createIntake/);
 let cookie = "",
   csrf = "",
   tenantId = "";
@@ -62,7 +69,7 @@ const enquiry = await api(
     marketingConsent: true,
     trackingConsent: true,
     consentVersion: "1",
-    touch: { source: "meta", campaign: "Stack test" },
+    touch: { source: "meta", medium: "paid_social", campaign: "Stack test" },
   },
   201,
 );

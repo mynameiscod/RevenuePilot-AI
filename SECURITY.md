@@ -21,20 +21,21 @@ RevenuePilot 0.2 is a pilot implementation with explicit live-activation gates, 
 
 Roles:
 
-| Capability                          | Owner | Admin | Counselor | Finance | Analyst | Viewer |
-| ----------------------------------- | ----- | ----- | --------- | ------- | ------- | ------ |
-| Read leads                          | All   | All   | Assigned  | Masked  | Masked  | Masked |
-| Edit leads / demos                  | Yes   | Yes   | Assigned  | No      | No      | No     |
-| Read contact PII / call text        | Yes   | Yes   | Assigned  | No      | No      | No     |
-| Revenue read                        | Yes   | Yes   | No        | Yes     | Yes     | No     |
-| Revenue write                       | Yes   | Yes   | No        | Yes     | No      | No     |
-| Connectors/settings/privacy         | Yes   | Yes   | No        | No      | No      | No     |
-| Members/audit                       | Yes   | Yes   | No        | No      | No      | No     |
-| SaaS billing / manage owners-admins | Yes   | No    | No        | No      | No      | No     |
+| Capability                          | Owner     | Admin     | Counselor | Finance | Analyst  | Viewer |
+| ----------------------------------- | --------- | --------- | --------- | ------- | -------- | ------ |
+| Read leads                          | All       | All       | Assigned  | Masked  | Masked   | Masked |
+| Edit leads / demos                  | Yes       | Yes       | Assigned  | No      | No       | No     |
+| Read contact PII / call text        | Yes       | Yes       | Assigned  | No      | No       | No     |
+| Marketing sources read / manage     | Yes / Yes | Yes / Yes | No        | No      | Yes / No | No     |
+| Revenue read                        | Yes       | Yes       | No        | Yes     | Yes      | No     |
+| Revenue write                       | Yes       | Yes       | No        | Yes     | No       | No     |
+| Connectors/settings/privacy         | Yes       | Yes       | No        | No      | No       | No     |
+| Members/audit                       | Yes       | Yes       | No        | No      | No       | No     |
+| SaaS billing / manage owners-admins | Yes       | No        | No        | No      | No       | No     |
 
 ## Important boundaries
 
-Public origin checks are not authentication against non-browser clients. Browser source tags and form telemetry remain untrusted observations. Signed provider events prove the configured sender, not a user's intent; payment evidence is read back from the provider before recording cash.
+Public origin checks are not authentication against non-browser clients. Browser source tags and form telemetry remain untrusted observations. Managed campaign keys resolve only against their owning tenant and form; stored metadata overrides edited UTM values, but a public link is not proof of a paid click. First-attempt metadata is retained, missing/paused keys cannot borrow another tenant’s source, and reporting never exposes raw click IDs. The public SDK asset permits cross-origin module loading; form/API writes retain their exact-origin policy. Nginx access logs exclude query strings. Signed provider events prove the configured sender, not a user's intent; payment evidence is read back from the provider before recording cash.
 
 No provider message/call is sent automatically upon form submission. A worker rechecks consent just before execution. A request already in flight when consent is withdrawn or a connection is paused cannot be recalled. No automatic provider failover is allowed. Provider acceptance does not prove delivery or a completed call. Suppressed contacts remain blocked even if a later individual consent purpose is granted; removal requires separate reviewed operational handling.
 

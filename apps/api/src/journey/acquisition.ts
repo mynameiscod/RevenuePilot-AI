@@ -23,6 +23,7 @@ import { digest, lookupHash } from "../security.ts";
 import { createLead, timeline } from "../services.ts";
 import { rateLimit } from "../rate-limit.ts";
 import { channelFor } from "./evidence.ts";
+import { resolveSource } from "./source-capture.ts";
 
 export async function ingestLead(
   form: any,
@@ -32,6 +33,31 @@ export async function ingestLead(
   session: ClientSession,
 ) {
   const tenantId = String(form.tenantId);
+  const attempt = await Attempt.findOne({
+    tenantId,
+    formId: form._id,
+    attemptId: input.attemptId,
+  })
+    .session(session)
+    .lean();
+  if (attempt && attempt.anonymousId !== input.anonymousId)
+    throw new AppError(
+      409,
+      "ATTEMPT_CONFLICT",
+      "Refresh the enquiry form before trying again.",
+    );
+  const source = input.trackingConsent
+    ? (attempt?.touch ?? (await resolveSource(form, input.touch, session)))
+    : null;
+  // Older observations may predate canonical source metadata.
+  if (source && !source.tagStatus) {
+    source.source = channelFor(
+      source.source ?? "Direct",
+      source.medium ?? "",
+      source.clickIds ?? {},
+    );
+    source.tagStatus = "browser_tags";
+  }
   const identityHash = lookupHash(
     input.email,
     config.DATA_ENCRYPTION_KEY,
@@ -101,10 +127,8 @@ export async function ingestLead(
         email: input.email,
         phone: input.phone,
         course: String(form.course),
-        channel: input.trackingConsent
-          ? channelFor(input.touch?.source ?? "Direct")
-          : "Other",
-        campaign: input.trackingConsent ? (input.touch?.campaign ?? "") : "",
+        channel: source?.source ?? "Other",
+        campaign: source?.campaign ?? "",
         note: "Enquiry accepted through a hosted form.",
       },
       requestId,
@@ -210,33 +234,28 @@ export async function ingestLead(
           leadId,
           trackingConsent: true,
           marketingConsent: input.marketingConsent,
+          touch: source,
           expiresAt: new Date(Date.now() + tenant.retentionDays * 86400000),
         },
         $setOnInsert: { submittedAt: now },
       },
       { upsert: true, session },
     );
-    const touch = input.touch ?? {
-      source: "Direct",
-      medium: "",
-      campaign: "",
-      adId: "",
-      clickIds: {},
-    };
     await Touch.create(
       [
         {
           tenantId,
           leadId,
           eventKey: `form:${form._id}:${input.attemptId}`,
-          ...touch,
-          source: channelFor(touch.source),
-          occurredAt: now,
-          eligible: true,
+          ...source,
+          occurredAt: attempt?.createdAt ?? now,
+          eligible: source?.tagStatus !== "link_unavailable",
         },
       ],
       { session },
     );
+  } else if (attempt) {
+    await Attempt.deleteOne({ tenantId, _id: attempt._id }, { session });
   }
   return leadId;
 }
@@ -297,26 +316,73 @@ export function acquisitionRouter(config: Config) {
     const input = formEventInput.parse(req.body),
       form = res.locals.form;
     await rateLimit(`form-event:${form._id}:${req.ip}`, 60);
+    const touch = await resolveSource(form, input.touch);
+    const tenant = await Tenant.findById(form.tenantId)
+      .select("retentionDays")
+      .lean();
+    const existing = await Attempt.findOne({
+      tenantId: form.tenantId,
+      formId: form._id,
+      attemptId: input.attemptId,
+    }).lean();
+    if (existing && existing.anonymousId !== input.anonymousId)
+      throw new AppError(
+        409,
+        "ATTEMPT_CONFLICT",
+        "Refresh the enquiry form before trying again.",
+      );
+    if (
+      !existing &&
+      (await Acceptance.exists({
+        tenantId: form.tenantId,
+        formId: form._id,
+        attemptId: input.attemptId,
+      }))
+    ) {
+      // A late telemetry request must not recreate an attempt removed at submit
+      // when measurement consent was withheld.
+      res.status(202).json({ accepted: true, collected: false });
+      return;
+    }
     const field = {
       viewed: "viewedAt",
       started: "startedAt",
       submitted: "submittedAt",
     }[input.type];
     // Server time is authoritative; retries preserve the earliest observation.
-    await Attempt.updateOne(
-      { tenantId: form.tenantId, formId: form._id, attemptId: input.attemptId },
-      {
-        $min: { [field]: new Date() },
-        $setOnInsert: {
-          anonymousId: input.anonymousId,
-          path: input.path,
-          touch: input.touch,
-          trackingConsent: true,
-          expiresAt: new Date(Date.now() + 90 * 86400000),
-        },
+    const scope = {
+      tenantId: form.tenantId,
+      formId: form._id,
+      attemptId: input.attemptId,
+      anonymousId: input.anonymousId,
+    };
+    const update = {
+      $min: { [field]: new Date() },
+      $setOnInsert: {
+        anonymousId: input.anonymousId,
+        path: input.path,
+        touch,
+        trackingConsent: true,
+        expiresAt: new Date(
+          Date.now() + (tenant?.retentionDays ?? 90) * 86400000,
+        ),
       },
-      { upsert: true },
-    );
+    };
+    try {
+      await Attempt.updateOne(scope, update, { upsert: true });
+    } catch (error: any) {
+      if (error.code !== 11000) throw error;
+      // Concurrent views/starts share one attempt; only its first source wins.
+      const retried = await Attempt.updateOne(scope, {
+        $min: { [field]: new Date() },
+      });
+      if (!retried.matchedCount)
+        throw new AppError(
+          409,
+          "ATTEMPT_CONFLICT",
+          "Refresh the enquiry form before trying again.",
+        );
+    }
     res.status(202).json({ accepted: true });
   });
   router.post("/:publicKey/submit", async (req, res) => {

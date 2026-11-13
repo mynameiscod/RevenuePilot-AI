@@ -102,6 +102,13 @@ it("waits for a slow API before serving Vite and signs in with either local host
     expect(await publicConfig.json()).toMatchObject({ demo: true });
     expect(initialSession.status, output).toBe(401);
     expect(health?.status, output).toBe(200);
+    const sdk = await fetch(`${origin}/revenuepilot-sdk.js`, {
+      headers: { Origin: "https://landing.example.test" },
+    });
+    expect(sdk.status, output).toBe(200);
+    expect(sdk.headers.get("content-type")).toContain("javascript");
+    expect(sdk.headers.get("access-control-allow-origin")).toBe("*");
+    expect(await sdk.text()).toContain("createIntake");
     for (const browserOrigin of [origin, configuredOrigin]) {
       // Use the same frontend proxy as the browser, not the API port directly.
       const login = await fetch(`${browserOrigin}/api/v1/auth/demo`, {
