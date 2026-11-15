@@ -99,3 +99,19 @@ CI verifies the actual production overlay with generated TLS material: private o
 `hostingerctl.py verify` is a first-pilot verification and expects registration, email and live providers to remain disabled. After deliberate provider rollout, use the provider acceptance checks and deployment health checks appropriate to that configuration.
 
 Retain known-good application images, source commit, configuration and database backups for upgrades. Review migrations before rolling back; preserve all database and edge volumes. Never replace existing workloads, reset the firewall, delete data or reuse LMS credentials/network to resolve an installation error. Keep workers/webhook handling available when rolling back a website with pending payments.
+
+## Updating an existing private pilot
+
+Keep the existing `.env.hostinger`, `.hostinger-secrets` and Docker volumes. Do not run first-install setup/owner bootstrap again. Use a tested commit from the approved RevenuePilot branch (record the previous `git rev-parse HEAD` for rollback). Fetch and check out that exact commit in the existing `/opt/revenuepilot` checkout only after reviewing any local source changes.
+
+For this additive manual-enrollment release, rebuild application images before restarting only application services:
+
+```bash
+docker compose --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml config --quiet
+docker compose --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml build api collector worker web
+docker compose --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml up -d --no-deps --wait --wait-timeout 240 api collector worker web
+python3 scripts/hostingerctl.py verify
+python3 scripts/hostingerctl.py status
+```
+
+Run each command only after the previous succeeds. This does not recreate MongoDB, Redis, Caddy, Piston or LMS services. A brief application interruption is possible. New enrollment fields are additive; existing order and receipt indexes are unchanged. A rollback must keep the new records and expose their evidence, not discard them. Retain a tested backup before any production update.

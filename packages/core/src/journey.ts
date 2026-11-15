@@ -1,5 +1,12 @@
 import { z } from "zod";
 import { identifier, moneyMinor, siteInput, leadInput } from "./contracts.ts";
+export const staffEnrollmentInput = z
+  .object({
+    version: z.number().int().min(1),
+    note: z.string().trim().min(3).max(1000),
+    reviewAcknowledged: z.boolean().default(false),
+  })
+  .strict();
 export const touchInput = z
   .object({
     source: z.string().trim().max(80).default("Direct"),

@@ -9,10 +9,10 @@ export type JourneyStep = {
 };
 export type ProgressInput = {
   lead: { stage: Stage; createdAt: string };
-  milestones: { type: string; occurredAt: string }[];
+  milestones: { type: string; occurredAt: string; evidence?: string }[];
   demos: { status: string; scheduledAt: string }[];
   orders: { status: string }[];
-  enrollments: { status: string }[];
+  enrollments: { status: string; evidence?: string }[];
   canReadMoney: boolean;
 };
 
@@ -30,6 +30,14 @@ export function journeyProgress(data: ProgressInput): JourneyStep[] {
     data.enrollments.some((e) => e.status === "review_required") ||
     data.orders.some((o) => o.status === "refunded");
   const captured = at("payment_captured");
+  const refunded =
+    at("payment_refunded") || data.orders.some((o) => o.status === "refunded");
+  const manualPayment = data.milestones.some(
+    (m) => m.type === "payment_captured" && m.evidence === "manual_record",
+  );
+  const staffEnrollment = data.enrollments.some(
+    (e) => e.status === "confirmed" && e.evidence === "staff_confirmed",
+  );
   const enrolled = data.enrollments.some((e) => e.status === "confirmed");
   return [
     {
@@ -61,18 +69,22 @@ export function journeyProgress(data: ProgressInput): JourneyStep[] {
       label: "Payment",
       state: !data.canReadMoney
         ? "pending"
-        : review
+        : refunded || review
           ? "review"
           : captured
             ? "recorded"
             : "pending",
       detail: !data.canReadMoney
         ? "Finance access required"
-        : review
+        : refunded
           ? "Refund recorded"
-          : captured
-            ? "Confirmed"
-            : "Not recorded",
+          : review
+            ? "Review evidence"
+            : captured
+              ? manualPayment
+                ? "Manually recorded"
+                : "Confirmed"
+              : "Not recorded",
       at: data.canReadMoney ? captured : undefined,
       tab: data.canReadMoney ? "payment" : "activity",
     },
@@ -82,7 +94,9 @@ export function journeyProgress(data: ProgressInput): JourneyStep[] {
       detail: review
         ? "Needs review"
         : enrolled
-          ? "Confirmed"
+          ? staffEnrollment
+            ? "Staff confirmed"
+            : "Confirmed"
           : "Not confirmed",
       at: enrolled && !review ? at("enrollment_confirmed") : undefined,
       tab: data.canReadMoney ? "payment" : "activity",

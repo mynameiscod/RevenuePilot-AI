@@ -9,6 +9,7 @@ import {
   demoInput,
   demoOutcomeInput,
   planLimits,
+  staffEnrollmentInput,
 } from "../../../../packages/core/src/journey.ts";
 import { Lead, Membership, Tenant, User } from "../models.ts";
 import {
@@ -35,6 +36,126 @@ import { journeyAnalytics } from "./analytics.ts";
 
 export function journeyRouter(config: Config) {
   const router = Router({ mergeParams: true });
+  router.post(
+    "/leads/:leadId/enrollment",
+    requirePermission("leads.write"),
+    async (req, res) => {
+      const input = staffEnrollmentInput.parse(req.body);
+      const leadId = String(req.params.leadId);
+      const result = await idempotent(
+        req.auth!,
+        `POST/leads/${leadId}/enrollment`,
+        req.get("Idempotency-Key") ?? "",
+        input,
+        async (session) => {
+          const lead = await Lead.findOne({
+            ...leadScope(req.auth!),
+            _id: leadId,
+            erasedAt: { $exists: false },
+          })
+            .session(session)
+            .lean();
+          if (!lead)
+            throw new AppError(404, "LEAD_NOT_FOUND", "Lead not found.");
+          if (lead.version !== input.version)
+            throw new AppError(
+              409,
+              "VERSION_CONFLICT",
+              "This lead changed. Refresh before confirming enrollment.",
+            );
+          const scope = { tenantId: req.auth!.tenantId, leadId };
+          const records = await Enrollment.find(scope).session(session).lean();
+          if (records.some((e) => e.status === "confirmed"))
+            throw new AppError(
+              409,
+              "ENROLLMENT_CONFIRMED",
+              "Enrollment is already confirmed.",
+            );
+          if (
+            records.some(
+              (e) =>
+                e.status === "review_required" &&
+                e.evidence !== "staff_confirmed",
+            )
+          )
+            throw new AppError(
+              422,
+              "PROVIDER_REVIEW_REQUIRED",
+              "Resolve the provider-backed enrollment review before creating a staff confirmation.",
+            );
+          if (
+            records.some((e) => e.status === "review_required") &&
+            !input.reviewAcknowledged
+          )
+            throw new AppError(
+              422,
+              "REVIEW_REQUIRED",
+              "Review the payment and refund evidence before reconfirming enrollment.",
+            );
+          const changed = await Lead.updateOne(
+            { ...leadScope(req.auth!), _id: leadId, version: input.version },
+            { $set: { stage: "enrolled" }, $inc: { version: 1 } },
+            { session },
+          );
+          if (!changed.modifiedCount)
+            throw new AppError(
+              409,
+              "VERSION_CONFLICT",
+              "This lead changed. Refresh before confirming enrollment.",
+            );
+          const actor = await User.findById(req.auth!.userId)
+            .select("name")
+            .session(session)
+            .lean();
+          const record = await Enrollment.findOneAndUpdate(
+            { ...scope, orderId: `staff:${leadId}` },
+            {
+              $set: {
+                course: lead.course,
+                evidence: "staff_confirmed",
+                status: "confirmed",
+                confirmedAt: new Date(),
+                confirmedBy: req.auth!.userId,
+                confirmedByName: actor?.name ?? "Staff member",
+                confirmationNote: input.note,
+              },
+            },
+            { upsert: true, returnDocument: "after", session },
+          );
+          await milestone(
+            req.auth!.tenantId!,
+            leadId,
+            "enrollment_confirmed",
+            `staff-enrollment:${leadId}:${input.version}`,
+            "staff_confirmed",
+            session,
+          );
+          await timeline(
+            req.auth!.tenantId!,
+            leadId,
+            "enrollment.staff_confirmed.v1",
+            "Enrollment confirmed by staff",
+            input.note,
+            req.auth!.userId,
+            session,
+          );
+          await audit(
+            req.auth!,
+            "enrollment.staff_confirmed",
+            String(record._id),
+            req.requestId,
+            session,
+          );
+          return {
+            id: record._id,
+            status: "confirmed",
+            evidence: "staff_confirmed",
+          };
+        },
+      );
+      res.status(201).json(result);
+    },
+  );
   router.get(
     "/forms",
     requirePermission("settings.write"),
@@ -301,7 +422,12 @@ export function journeyRouter(config: Config) {
           note: can(req.auth!.role!, "pii.read") ? d.note : "",
         })),
         milestones,
-        enrollments,
+        enrollments: enrollments.map(({ confirmationNote, ...enrollment }) => ({
+          ...enrollment,
+          confirmationNote: can(req.auth!.role!, "pii.read")
+            ? confirmationNote
+            : undefined,
+        })),
         orders,
         consent,
         suppressed: !!suppression,

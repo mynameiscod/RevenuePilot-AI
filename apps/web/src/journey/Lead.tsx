@@ -95,6 +95,9 @@ type Journey = {
     status: string;
     course: string;
     evidence: string;
+    confirmedAt?: string;
+    confirmedByName?: string;
+    confirmationNote?: string;
   }[];
   calls: {
     _id: string;
@@ -128,6 +131,7 @@ function LeadJourney({ leadId }: { leadId: string }) {
   const action = useAction();
   const [params, setParams] = useSearchParams();
   const [stageModal, setStageModal] = useState(false);
+  const [enrollmentModal, setEnrollmentModal] = useState(false);
   const [resultDemo, setResultDemo] = useState<Journey["demos"][number] | null>(
     null,
   );
@@ -231,16 +235,16 @@ function LeadJourney({ leadId }: { leadId: string }) {
   if (confirmed)
     next = {
       title: "Enrollment confirmed",
-      text: "The enrollment is backed by a recorded payment. Review its evidence below.",
+      text: "Review who confirmed enrollment and the payment evidence recorded separately below.",
       tab: money ? "payment" : "activity",
       button: money ? "View enrollment" : "View history",
     };
   if (review)
     next = {
       title: "Enrollment needs review",
-      text: "A refund has been recorded. Review the payment and enrollment before following up.",
+      text: "A refund or status change requires review of the payment evidence and enrollment decision.",
       tab: money ? "payment" : "activity",
-      button: money ? "Review refund" : "View history",
+      button: money ? "Review evidence" : "View history",
     };
   if (lead.stage === "lost" || data.suppressed)
     next = {
@@ -361,7 +365,7 @@ function LeadJourney({ leadId }: { leadId: string }) {
         aria-labelledby={`lead-tab-${tab}`}
         className="lead-tab-content"
       >
-        {action.error && !stageModal && !resultDemo && (
+        {action.error && !stageModal && !resultDemo && !enrollmentModal && (
           <ErrorBox message={action.error} />
         )}
         {tab === "activity" && (
@@ -733,13 +737,25 @@ function LeadJourney({ leadId }: { leadId: string }) {
               <div>
                 <h2>Payment and enrollment</h2>
                 <p>
-                  Payment confirmation and enrollment are recorded together.
+                  Record payments already received. Staff enrollment
+                  confirmation is a separate step below.
                 </p>
               </div>
               <Wallet size={20} />
             </div>
             {can(tenant.role, "revenue.write") && (
-              <PaymentLinkForm leadId={leadId!} onCreated={setCheckout} />
+              <>
+                <Link
+                  className="btn btn-primary mb-3"
+                  to={`/revenue?leadId=${encodeURIComponent(leadId)}`}
+                >
+                  Record payment or refund
+                </Link>
+                <details>
+                  <summary>Provider checkout links (optional)</summary>
+                  <PaymentLinkForm leadId={leadId!} onCreated={setCheckout} />
+                </details>
+              </>
             )}
             {checkout && (
               <div className="success-box">
@@ -794,28 +810,119 @@ function LeadJourney({ leadId }: { leadId: string }) {
               </div>
             ))}
             {!data.orders.length && (
-              <p className="muted">No payment recorded yet.</p>
-            )}
-            {data.enrollments.map((en) => (
-              <div
-                className={
-                  en.status === "confirmed" ? "success-box" : "info-strip"
-                }
-                key={en._id}
-              >
-                {en.course} · {en.status.replaceAll("_", " ")} ·{" "}
-                {en.evidence.replaceAll("_", " ")}
-              </div>
-            ))}
-            {!data.enrollments.length && (
-              <p className="small-note">
-                A confirmed full payment creates enrollment evidence. Updating
-                the lead's status alone does not.
+              <p className="muted">
+                No provider checkout orders.{" "}
+                <Link to="/revenue">View the payment ledger</Link> for manual
+                receipts.
               </p>
             )}
           </section>
         )}
       </div>
+      <section className="panel padded mt-4">
+        <div className="panel-heading">
+          <div>
+            <h2>Enrollment confirmation</h2>
+            <p>
+              Staff confirmation does not create a payment or send an
+              advertising conversion.
+            </p>
+          </div>
+          {write && !confirmed && (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                action.setError("");
+                setEnrollmentModal(true);
+              }}
+            >
+              {review ? "Review and confirm enrollment" : "Confirm enrollment"}
+            </button>
+          )}
+        </div>
+        {data.enrollments.map((en) => (
+          <div
+            className={en.status === "confirmed" ? "success-box" : "info-strip"}
+            key={en._id}
+          >
+            {en.course} · {en.status.replaceAll("_", " ")} ·{" "}
+            {en.evidence.replaceAll("_", " ")}
+            {en.confirmedByName && (
+              <p>
+                Confirmed by {en.confirmedByName}
+                {en.confirmedAt
+                  ? ` · ${timeLabel(en.confirmedAt, tenant.timezone)}`
+                  : ""}
+              </p>
+            )}
+            {en.confirmationNote && <p>{en.confirmationNote}</p>}
+          </div>
+        ))}
+        {!data.enrollments.length && (
+          <p className="small-note">
+            No enrollment confirmation recorded. Use Confirm enrollment after
+            staff checks the admission decision; a status change alone does not
+            confirm it.
+          </p>
+        )}
+      </section>
+      {enrollmentModal && (
+        <Modal
+          title={
+            review ? "Review and confirm enrollment" : "Confirm enrollment"
+          }
+          close={() => setEnrollmentModal(false)}
+        >
+          {action.error && <ErrorBox message={action.error} />}
+          <p>
+            This records a staff decision for {lead.course}. It does not confirm
+            that payment has been received.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const v = values(e);
+              if (
+                await action.run(
+                  `/leads/${leadId}/enrollment`,
+                  {
+                    version: lead.version,
+                    note: v.note,
+                    reviewAcknowledged: v.reviewAcknowledged === "on",
+                  },
+                  "POST",
+                  "Staff enrollment confirmed",
+                  operation.current,
+                )
+              ) {
+                setEnrollmentModal(false);
+                saved();
+              }
+            }}
+          >
+            <Field label="Confirmation evidence / reason">
+              <textarea
+                name="note"
+                className="form-control"
+                minLength={3}
+                maxLength={1000}
+                rows={3}
+                required
+              />
+            </Field>
+            {review && (
+              <label className="d-flex gap-2 my-3">
+                <input type="checkbox" name="reviewAcknowledged" required />I
+                reviewed the payment and refund evidence and confirm this
+                enrollment should remain active.
+              </label>
+            )}
+            <button className="btn btn-primary" disabled={action.busy}>
+              Confirm enrollment
+            </button>
+          </form>
+        </Modal>
+      )}
       {can(tenant.role, "connections.write") && (
         <details className="panel padded mt-4">
           <summary>Consent and contact preferences</summary>
@@ -850,7 +957,7 @@ function LeadJourney({ leadId }: { leadId: string }) {
                 defaultValue={stages.find((s) => s !== lead.stage)}
               >
                 {stages
-                  .filter((s) => s !== lead.stage)
+                  .filter((s) => s !== lead.stage && s !== "enrolled")
                   .map((s) => (
                     <option value={s} key={s}>
                       {stageLabels[s]}

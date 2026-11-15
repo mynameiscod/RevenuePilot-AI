@@ -28,6 +28,7 @@ import { leadScope, type AuthContext } from "./auth.ts";
 import type { Config } from "./config.ts";
 import { reserveUsage } from "./journey/entitlements.ts";
 import { milestone } from "./journey/evidence.ts";
+import { Enrollment } from "./journey/models.ts";
 
 export async function audit(
   auth: AuthContext,
@@ -312,6 +313,28 @@ export async function createReceipt(
     session,
   );
   await audit(auth, `revenue.${input.kind}.recorded`, id, requestId, session);
+  if (!verified) {
+    await milestone(
+      auth.tenantId!,
+      String(lead._id),
+      input.kind === "capture" ? "payment_captured" : "payment_refunded",
+      `manual-receipt:${id}`,
+      "manual_record",
+      session,
+    );
+    if (input.kind === "refund") {
+      await Enrollment.updateMany(
+        {
+          tenantId: auth.tenantId,
+          leadId: lead._id,
+          evidence: "staff_confirmed",
+          status: "confirmed",
+        },
+        { $set: { status: "review_required" } },
+        { session },
+      );
+    }
+  }
   return { id };
 }
 export async function overview(
