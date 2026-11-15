@@ -87,6 +87,7 @@ export function leadView(lead: any, role: Role, key: string): LeadView {
       : { email: "", phone: "" };
   return {
     id: lead._id,
+    entryPoint: lead.entryPoint,
     name: can(role, "pii.read") ? lead.name : `${lead.name.charAt(0)}•••`,
     email: contact.email,
     phone: contact.phone,

@@ -343,7 +343,10 @@ describe("provider protocol fixtures and browser intake", () => {
       .mockImplementation(async () =>
         json({ accepted: true, acceptanceToken: "synthetic" }),
       );
-    const intake = createIntake({ apiOrigin: origin, formKey: "form_fixture" });
+    const intake = createIntake({
+      apiOrigin: origin,
+      formKey: "form_fixture_synthetic_test",
+    });
     expect(await intake.record("viewed")).toEqual({ collected: false });
     expect(transport).not.toHaveBeenCalled();
     intake.setConsent({ tracking: true, advertising: true });
@@ -363,14 +366,14 @@ describe("provider protocol fixtures and browser intake", () => {
     await intake.submit(data);
     await intake.submit(data);
     expect(JSON.parse(String(transport.mock.calls[1][1]?.body)).attemptId).toBe(
-      JSON.parse(String(transport.mock.calls[2][1]?.body)).attemptId,
+      event.attemptId,
     );
     expect(
       JSON.parse(String(transport.mock.calls[1][1]?.body)).touch.marketingKey,
     ).toBe("ml_synthetic");
     intake.setConsent({ tracking: false, advertising: false });
     await intake.record("viewed");
-    expect(transport).toHaveBeenCalledTimes(3);
+    expect(transport).toHaveBeenCalledTimes(2);
   });
 });
 const origin = "http://localhost:3001";

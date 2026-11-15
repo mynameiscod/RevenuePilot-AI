@@ -194,3 +194,7 @@ Command kinds: call/message/analysis/conversion. Calls/messages require marketin
 Collector batches contain 1–50 page/form observations, pseudonymous IDs, occurredAt, consent literal `granted`, query-free path and strict payload. Timestamps accept up to seven days old/five minutes future. No lead/receipt mutation is exposed by the collector.
 
 `/health/live` and `/health/ready` are outside `/api/v1`; readiness checks MongoDB only. Pagination defaults page1/limit25, maximum100/page and page10000. Reports return 422 when bounded processing limits are exceeded. No unrestricted MongoDB query, arbitrary HTTP proxy or generic untyped provider execution endpoint exists.
+
+### Existing website intake additions
+
+`POST /public/forms/:key/submit` accepts optional `entryPoint` (`website` or `hosted_form`, default `hosted_form`) and `message` (trimmed, maximum 1,000 characters). Messages are functional enquiry details, not telemetry. Lead responses expose optional `entryPoint`; notes retain existing role masking. `GET /public/forms/:key` is not cached. Legacy payload replay hashes remain compatible. The SDK exposes structured `IntakeError` (`code`, `retryable`, `requestId`), bounds requests, coalesces duplicates and locks uncertain retries to the original payload.

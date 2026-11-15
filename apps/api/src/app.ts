@@ -160,6 +160,11 @@ export function createApp(config: Config) {
   const app = express();
   const webOrigins = allowedWebOrigins(config);
   app.disable("x-powered-by");
+  if (config.TRUST_PROXY_CIDRS)
+    app.set(
+      "trust proxy",
+      config.TRUST_PROXY_CIDRS.split(",").map((value) => value.trim()),
+    );
   app.use((req, res, next) => {
     req.requestId = randomUUID();
     res.set("X-Request-Id", req.requestId);

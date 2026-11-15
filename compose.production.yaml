@@ -1,0 +1,72 @@
+# Separate from compose.yaml. Dedicated authenticated Mongo replica set and Redis
+# must already exist. Nothing here provisions or shares the LMS infrastructure.
+name: revenuepilot-production
+x-env: &env
+  NODE_ENV: production
+  MONGODB_URI: ${MONGODB_URI:?Set dedicated authenticated MongoDB replica-set URI}
+  REDIS_URL: ${REDIS_URL:?Set dedicated authenticated Redis TLS URI}
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Set stable 64-hex encryption key}
+  WEB_ORIGIN: ${WEB_ORIGIN:?Set exact HTTPS RevenuePilot origin}
+  TRUST_PROXY_CIDRS: ${TRUST_PROXY_CIDRS:?Set exact trusted private proxy IPs/CIDRs}
+  API_PORT: "4000"
+  REVENUEPILOT_DEMO: "false"
+  ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+  ALLOW_LIVE_PROVIDERS: ${ALLOW_LIVE_PROVIDERS:-false}
+  ALLOW_ACCOUNT_EMAIL: ${ALLOW_ACCOUNT_EMAIL:-false}
+  ACCOUNT_EMAIL_FROM: ${ACCOUNT_EMAIL_FROM:-}
+  AWS_REGION: ${AWS_REGION:-ap-south-1}
+x-service: &service
+  build: { context: ., target: service }
+  environment: *env
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 45s
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  networks: [pilot]
+services:
+  api:
+    <<: *service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  collector:
+    <<: *service
+    command: ["node", "dist/collector.mjs"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  worker:
+    <<: *service
+    command: ["node", "dist/worker.mjs"]
+  web:
+    build: { context: ., target: web }
+    ports: ["127.0.0.1:${REVENUEPILOT_HTTP_PORT:-8081}:8080"]
+    depends_on:
+      api: { condition: service_healthy }
+      collector: { condition: service_healthy }
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    networks: [pilot]
+networks:
+  pilot:
+    ipam:
+      config:
+        - subnet: ${REVENUEPILOT_NETWORK_SUBNET:-172.30.84.0/24}

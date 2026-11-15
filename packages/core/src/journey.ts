@@ -105,6 +105,8 @@ export const submissionInput = z
     consentVersion: z.string().min(1).max(30),
     touch: touchInput.optional(),
     website: z.string().max(0).default(""),
+    entryPoint: z.enum(["hosted_form", "website"]).default("hosted_form"),
+    message: z.string().trim().max(1000).default(""),
   })
   .strict();
 export const contactInput = z

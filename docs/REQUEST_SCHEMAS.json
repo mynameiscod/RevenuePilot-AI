@@ -1396,6 +1396,19 @@
           "default": "",
           "type": "string",
           "maxLength": 0
+        },
+        "entryPoint": {
+          "default": "hosted_form",
+          "type": "string",
+          "enum": [
+            "hosted_form",
+            "website"
+          ]
+        },
+        "message": {
+          "default": "",
+          "type": "string",
+          "maxLength": 1000
         }
       },
       "required": [

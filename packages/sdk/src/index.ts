@@ -83,4 +83,11 @@ export function createTracker(options: TrackerOptions) {
     },
   };
 }
-export { createIntake, type IntakeConsent } from "./intake.ts";
+export {
+  createIntake,
+  IntakeError,
+  type IntakeConsent,
+  type IntakeInfo,
+  type IntakeInput,
+  type IntakeConfirmation,
+} from "./intake.ts";

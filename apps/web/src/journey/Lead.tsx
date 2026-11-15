@@ -443,6 +443,14 @@ function LeadJourney({ leadId }: { leadId: string }) {
                   <Target size={18} />
                 </div>
                 <Channel name={lead.channel} />
+                {lead.entryPoint && (
+                  <p className="small-note mt-2">
+                    Entry point:{" "}
+                    {lead.entryPoint === "website"
+                      ? "Existing website form"
+                      : "RevenuePilot form"}
+                  </p>
+                )}
                 <p className="mt-3 mb-1">
                   <strong>{lead.campaign || "No campaign recorded"}</strong>
                 </p>

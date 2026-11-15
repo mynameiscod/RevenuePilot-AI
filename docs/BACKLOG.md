@@ -44,7 +44,7 @@ Each GitHub issue contains the owner's question, existing foundation, scope, dep
 | 09    | [Revenue attribution by source, campaign and ad](https://github.com/mynameiscod/RevenuePilot-AI/issues/10)             | Which marketing interactions produced business conversions and collected revenue, rather than only enquiries?                            | Backlog         |
 | 10    | [Business-owner drop-off dashboard and improvement feedback](https://github.com/mynameiscod/RevenuePilot-AI/issues/11) | Where are opportunities being lost or delayed, what should the team act on next, and which evidenced outcomes can inform advertising?    | Backlog         |
 
-**Current work in progress: none under this new backlog.** Start with item 01 when implementation resumes. Existing features should be reused and checked against the expanded business goal; this is not a rebuild from zero.
+**Selected scope: UC-01 existing website forms — implementation ready for review; production activation pending.** See [the full operating flow and release gates](WEBSITE_FLOW.md). Existing features should be reused and checked against the expanded business goal; this is not a rebuild from zero.
 
 ## Business use cases within the stages
 
@@ -52,7 +52,7 @@ The [eight business use cases and detailed acceptance checklists](BUSINESS_USE_C
 
 Source, actual contact route, ingestion mechanism and offering must remain separate. The shared backlog also covers safe contact/opportunity matching, assignment and follow-up, optional appointments, payment evidence and the separation of Offering / Entry point / Lead journey. Referral is a source, and a CRM is an ingestion mechanism; neither should erase the original contact route when it is known.
 
-All of these use-case tasks remain in Backlog. The current local/demo foundations are reused, and the actual CodeBegun website/Meta integration in issue #1 remains deferred.
+UC-01 now has paired RevenuePilot and CodeBegun website changes for review, with synthetic SDK/API journey evidence. Production domain/form mapping, browser acceptance and provider certification remain open. Other use cases remain in Backlog; Meta Instant Forms remains deferred.
 
 ## One stage at a time
 
@@ -77,8 +77,8 @@ Use **Backlog → In progress → Ready for review → Done**. If a provider or 
 
 ## Existing deferred integration
 
-[Issue #1 — CodeBegun website and Meta Instant Forms](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) remains **deferred**. It is the existing live-integration work related to items 01, 02 and 04, not an eleventh stage or an automatically activated dependency. Website observations and provider instant-form metrics have different visibility; missing pre-submission histories must not be invented.
+[Issue #1 — CodeBegun website and Meta Instant Forms](https://github.com/mynameiscod/RevenuePilot-AI/issues/1): **website implementation ready for review; Meta Instant Forms deferred**. It is the existing live-integration work related to items 01, 02 and 04, not an eleventh stage or an automatically activated dependency. Website observations and provider instant-form metrics have different visibility; missing pre-submission histories must not be invented.
 
 ## Current foundation and release boundaries
 
-See [the implementation record](ROADMAP.md), [acceptance evidence](ACCEPTANCE.md), [architecture](ARCHITECTURE.md) and [marketing guide](MARKETING.md) for what currently exists. This backlog update changes planning documentation and issues only. It does not change the application, touch the LMS, create another repository, enable external outreach or deploy the product.
+See [the implementation record](ROADMAP.md), [acceptance evidence](ACCEPTANCE.md), [architecture](ARCHITECTURE.md) and [marketing guide](MARKETING.md) for what currently exists. UC-01 changes application code in RevenuePilot and the website only. No deployment, LMS change or live outreach is included. The wider ten-stage, multi-industry backlog is not marked complete by this release.

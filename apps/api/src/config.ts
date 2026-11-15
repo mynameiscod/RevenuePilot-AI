@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
+import { isIP } from "node:net";
 const schema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -23,11 +24,34 @@ const schema = z.object({
     .transform((value) => new URL(value).origin)
     .default("http://localhost:3001"),
   API_PORT: z.coerce.number().default(4000),
+  TRUST_PROXY_CIDRS: z
+    .string()
+    .default("")
+    .refine(
+      (value) =>
+        !value ||
+        value.split(",").every((raw) => {
+          const parts = raw.trim().split("/");
+          const family = isIP(parts[0]);
+          return (
+            family > 0 &&
+            parts.length <= 2 &&
+            (parts[1] === undefined ||
+              (/^\d+$/.test(parts[1]) &&
+                Number(parts[1]) > 0 &&
+                Number(parts[1]) <= (family === 4 ? 32 : 128)))
+          );
+        }),
+      "Use explicit trusted proxy IPs/CIDRs; no wildcard or /0 trust",
+    ),
   ALLOW_REGISTRATION: z.enum(["true", "false"]).default("true"),
   REVENUEPILOT_DEMO: z.enum(["true", "false"]).default("false"),
   ALLOW_LIVE_PROVIDERS: z.enum(["true", "false"]).default("false"),
   ALLOW_ACCOUNT_EMAIL: z.enum(["true", "false"]).default("false"),
-  ACCOUNT_EMAIL_FROM: z.email().optional(),
+  ACCOUNT_EMAIL_FROM: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.email().optional(),
+  ),
   AWS_REGION: z
     .string()
     .regex(/^[a-z]{2}-[a-z]+-\d$/)
