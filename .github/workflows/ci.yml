@@ -41,6 +41,20 @@ jobs:
           WEB_ORIGIN: https://pilot.example.test
           TRUST_PROXY_CIDRS: 172.30.84.0/24
 
+      - name: Validate Hostinger configuration and preflight
+        if: runner.os == 'Linux'
+        env:
+          DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          MONGODB_URI: mongodb://synthetic:synthetic@mongo.example.test/revenuepilot?replicaSet=rs0
+          REDIS_URL: rediss://synthetic:synthetic@redis.example.test:6379
+          WEB_ORIGIN: https://revenuepilot.example.test
+          REVENUEPILOT_DOMAIN: revenuepilot.example.test
+          TRUST_PROXY_CIDRS: 172.30.84.0/24
+        run: |
+          python3 scripts/test-hostinger-preflight.py
+          docker compose -f compose.production.yaml -f compose.hostinger.yaml config --quiet
+          docker run --rm -e REVENUEPILOT_DOMAIN -v "$PWD/deploy/hostinger/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
   docker-stack:
     runs-on: ubuntu-latest
     timeout-minutes: 20

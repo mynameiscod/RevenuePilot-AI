@@ -1,0 +1,27 @@
+# Overlay for a VPS with free ports 80/443. Never replaces another site's proxy.
+# Combine with compose.production.yaml; this does not provision MongoDB/Redis.
+services:
+  edge:
+    image: caddy:2.11.9-alpine
+    environment:
+      REVENUEPILOT_DOMAIN: ${REVENUEPILOT_DOMAIN:?Set the approved RevenuePilot hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/hostinger/Caddyfile:/etc/caddy/Caddyfile:ro
+      - edge_data:/data
+      - edge_config:/config
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    restart: unless-stopped
+    depends_on:
+      web: { condition: service_started }
+    networks: [pilot]
+volumes:
+  edge_data:
+  edge_config:
