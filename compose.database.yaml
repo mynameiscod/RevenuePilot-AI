@@ -1,0 +1,114 @@
+# Optional dedicated databases on the same VPS. Use only with production config.
+# Passwords/certificates are created locally by setup-hostinger.py, never in Git.
+x-private-db: &private-db
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  networks: [pilot]
+x-app-ca: &app-ca
+  NODE_EXTRA_CA_CERTS: /run/revenuepilot/ca.crt
+services:
+  mongo:
+    <<: *private-db
+    image: mongo:7.0.48
+    entrypoint: ["bash", "/rp/mongo-entrypoint.sh"]
+    command:
+      [
+        "mongod",
+        "--replSet",
+        "rp-rs",
+        "--bind_ip_all",
+        "--keyFile",
+        "/run/rp-mongo/keyfile",
+        "--tlsMode",
+        "requireTLS",
+        "--tlsCertificateKeyFile",
+        "/run/rp-mongo/server.pem",
+        "--tlsCAFile",
+        "/run/rp-mongo/ca.crt",
+        "--tlsAllowConnectionsWithoutCertificates",
+        "--wiredTigerCacheSizeGB",
+        "1",
+      ]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rp_admin
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/rp-mongo/root-password
+      MONGO_INITDB_DATABASE: revenuepilot
+    tmpfs: [/run/rp-mongo]
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+      - ./.hostinger-secrets/mongo:/rp-secrets:ro
+      - ./deploy/hostinger/mongo-entrypoint.sh:/rp/mongo-entrypoint.sh:ro
+      - ./deploy/hostinger/mongo-app-user.js:/docker-entrypoint-initdb.d/01-app-user.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--host",
+          "localhost",
+          "--tls",
+          "--tlsCAFile",
+          "/run/rp-mongo/ca.crt",
+          "--quiet",
+          "--eval",
+          "if (!db.getSiblingDB('admin').auth('rp_admin', fs.readFileSync('/run/rp-mongo/root-password','utf8').trim())) quit(1); if (!db.hello().isWritablePrimary) quit(1);",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+  mongo-init:
+    image: mongo:7.0.48
+    entrypoint: ["bash", "/rp/mongo-init.sh"]
+    restart: "no"
+    networks: [pilot]
+    depends_on:
+      mongo: { condition: service_started }
+    volumes:
+      - ./.hostinger-secrets/mongo:/rp-secrets:ro
+      - ./deploy/hostinger/mongo-init.sh:/rp/mongo-init.sh:ro
+      - ./deploy/hostinger/mongo-replica.js:/rp/mongo-replica.js:ro
+  redis:
+    <<: *private-db
+    image: redis:8.10.3-alpine
+    entrypoint: ["sh", "/rp/redis-entrypoint.sh"]
+    tmpfs: [/run/rp-redis]
+    volumes:
+      - redis_data:/data
+      - ./.hostinger-secrets/redis:/rp-secrets:ro
+      - ./deploy/hostinger/redis-entrypoint.sh:/rp/redis-entrypoint.sh:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$(cat /run/rp-redis/password) redis-cli --tls --cacert /run/rp-redis/ca.crt -h redis ping | grep -qx PONG",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  api:
+    environment: *app-ca
+    volumes: ["./.hostinger-secrets/ca.crt:/run/revenuepilot/ca.crt:ro"]
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  collector:
+    environment: *app-ca
+    volumes: ["./.hostinger-secrets/ca.crt:/run/revenuepilot/ca.crt:ro"]
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  worker:
+    environment: *app-ca
+    volumes: ["./.hostinger-secrets/ca.crt:/run/revenuepilot/ca.crt:ro"]
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+volumes:
+  mongo_data:
+  mongo_config:
+  redis_data:

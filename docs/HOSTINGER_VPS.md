@@ -1,51 +1,101 @@
-# Selected Hostinger VPS deployment
+# Hostinger VPS installation
 
-## Target and current state
+## Selected target and observed state
 
-Siva selected the VPS in his Hostinger screenshot and chose `revenuepilot.codebegun.com` on 15 November 2026 (IST).
-
-| Item | Selected target / evidence |
+| Item | Evidence supplied by Siva |
 | --- | --- |
-| Hostinger VPS ID | `2005345` |
-| Hostname shown | `srv2005345.hstgr.cloud` |
-| IPv4 shown | `200.97.164.244` |
-| OS shown | Ubuntu 24.04 LTS |
-| Plan shown | KVM 4; 24 GB RAM and 200 GB disk displayed |
+| VPS / hostname | `2005345` / `srv2005345.hstgr.cloud` |
+| IPv4 / OS | `200.97.164.244` / Ubuntu 24.04 LTS |
 | Application origin | `https://revenuepilot.codebegun.com` |
-| Proposed installation directory | `/opt/revenuepilot` |
-| Compose project | `revenuepilot-production` |
+| RAM / disk headroom | Terminal: 15 GiB RAM, 14 GiB available; 183 GiB disk free |
+| Existing workload | `codebox-piston`, port 2000; must remain running |
+| Existing Docker networks | `172.17.0.0/16`, `172.18.0.0/16` |
+| New network | `172.30.84.0/24`, checked for collisions before first start |
+| DNS / firewall | User added A `revenuepilot` → `200.97.164.244`; UFW permits 22/tcp, 80/tcp, 443/tcp and 443/udp |
+| Proposed directory / Compose project | `/opt/revenuepilot` / `revenuepilot-production` |
 
-Screenshot information is not a live host inspection. The selected VPS has **not been changed or deployed to**. Hostinger sign-in is restricted in the available cloud browser, and no server-management connection is configured in this session. No root password, private SSH key or API token belongs in chat or Git.
+These are supplied screenshots, not a live server inspection. DNS propagation, application startup and public HTTPS still require verification. The assistant has not logged into or deployed to this VPS. Hostinger browser sign-in is unavailable in this environment; installation commands run in the user's existing SSH/web-console session. Do not paste passwords, environment files, private keys or API tokens into chat or Git.
 
-## Prepared topology
+## Topology
 
-Public HTTPS → dedicated Caddy edge → RevenuePilot web/nginx → private API and collector. The worker uses the same dedicated MongoDB replica set and Redis endpoints. The API, collector and databases have no public port mappings. Web remains bound only to loopback port 8081; Caddy uses the private Docker network directly. Only edge ports 80/443 are added.
+Caddy HTTPS → web/nginx → API and collector. The worker processes the durable queue. `compose.database.yaml` adds a dedicated authenticated MongoDB replica set and authenticated TLS Redis to `compose.production.yaml`; `compose.hostinger.yaml` adds Caddy and persistent certificate volumes.
 
-`compose.hostinger.yaml` overlays `compose.production.yaml`. It is intended for a VPS where 80/443 and the proposed Docker subnet are free. It must not displace another application's reverse proxy, database or containers. If an existing proxy owns those ports, adapt its routing after inspection instead of starting the edge overlay or stopping the existing service. No LMS change is part of this deployment.
+MongoDB, Redis, API and collector have no published host ports. Web binds only to `127.0.0.1:8081`. Caddy publishes 80/443 TCP and 443 UDP. The private network, database volumes and project name are independent of Piston and the LMS. Mongo is a single-node replica set: transactions work, but there is no high availability. Redis uses AOF persistence and `noeviction`. No host reboot, package upgrade, firewall reset or unrelated service change is part of installation.
 
-**Database prerequisite:** this profile does not create a database. Supply dedicated, persistent, authenticated TLS MongoDB replica-set and Redis endpoints. A managed service or independently provisioned private database stack can supply them. Use publicly trusted service certificates or an explicitly installed private CA; never disable certificate validation. No database purchase or shared LMS resource is implied.
+The base production Compose file can alternatively use dedicated external TLS database endpoints, without `compose.database.yaml`. The commands below deliberately use the self-managed database overlay on this VPS; they do not purchase a managed service.
 
-## Installation contract
+## First installation
 
-These steps describe the prepared release procedure once secure server-management access is available. They are not a record of actions already performed.
+Run each stage separately. Stop on an error and inspect it before continuing.
 
-1. Inventory current containers, services, listeners, routing, firewall and available capacity. Confirm this is the selected VPS and preserve existing workloads. Verify backups and the absence of any directory/network/project-name collision before creating resources.
-2. Pin the reviewed RevenuePilot commit and image digests after CI and image scanning. Fetch through an approved read-only Git credential or transfer the reviewed archive; no credential in a URL or shell history. The paired website change is separate and is not deployed by this stack.
-3. Install Docker Engine and its Compose plugin from Docker's official Ubuntu packages only if absent. No reinstall, reboot, firewall replacement or host-wide upgrade is bundled here.
-4. Provision/verify the dedicated MongoDB replica set and Redis; record backup and restore evidence. Copy `deploy/hostinger/hostinger.env.example` to `.env.hostinger` on the host with mode 600; fill credentials and a generated stable encryption key securely. Keep a recoverable encrypted copy of that key outside the server. Never generate a replacement key on redeploy.
-5. Inspect the current DNS zone before any edit. The intended record is **A `revenuepilot` → `200.97.164.244`**. Existing A/AAAA/CNAME, proxy/CDN configuration and certificate policy need review; email and verification records are preserved. No DNS changes have been made. This initial profile expects direct DNS to the selected IPv4.
-6. Run the read-only `python3 scripts/hostinger-preflight.py --env .env.hostinger` on the target. It checks required private settings without printing them, Docker/Compose, port/subnet collisions, DNS and basic free memory/disk. It intentionally stops on occupied edge ports or an existing overlapping network. It is a first-install check, not a redeployment command or proof of database connectivity/capacity.
-7. Validate the merged Compose configuration with `docker compose --env-file .env.hostinger -f compose.production.yaml -f compose.hostinger.yaml config --quiet`. Never print the expanded configuration into CI/chat because it contains secrets. Validate the Caddyfile before starting the edge. The container's `/data` and `/config` volumes persist certificate state.
-8. Start API/collector/worker/web, verify authenticated database access and real worker/Redis operation, then bring up the edge after DNS/ports/firewall verification. Only TCP 80/443 and optional UDP 443 are application ingress. Restrict administrative access without changing or locking out the existing SSH session. Do not publish MongoDB, Redis, API or collector ports.
-9. Complete owner bootstrap behind a temporary access restriction. Registration and live providers/mail default off. Create the CodeBegun owner, enable MFA, establish account recovery and disable registration before opening the pilot. Verify secure cookies, origin checks and actual visitor IP separation behind Caddy/nginx; do not trust arbitrary forwarded headers or CDN ranges by guess.
-10. Verify the real HTTPS page, valid certificate, login, lead capture, task assignment and report separation using synthetic staging records. Mongo readiness alone does not verify Redis or worker operation. Test backup restore, logs/alerts and restart persistence on this topology before real leads.
-11. Create the five course forms with actual counselors and exact website origins. Then configure the paired website build and run its `check:revenuepilot`. Release it separately only after [WEBSITE_FLOW.md](WEBSITE_FLOW.md) passes. Website master pushes can trigger its existing deployment webhook.
-12. Keep live calls, messages, ad feedback and payments off until each required provider/account is certified and enabled explicitly. A published login screen is not certification of the full marketing-to-payment production flow.
+1. Confirm the hostname resolves to the selected IP:
 
-## Rollback and operational boundaries
+   ```bash
+   getent ahostsv4 revenuepilot.codebegun.com
+   ```
 
-Retain the prior reviewed images, configuration, database backups and stable encryption key. Roll back application images with compatible schemas; preserve database and edge volumes. Never run `down --volumes`, delete data, stop unrelated containers, reset firewall rules or reuse an existing application's network to resolve a collision. Keep pending payment webhooks/workers available if rolling back the website after checkout activation.
+   Expect `200.97.164.244`. The preflight also rejects unexpected IPv6/other addresses. If DNS is still propagating, wait and repeat; do not disable TLS checks or change unrelated DNS records.
 
-The edge profile uses the [official Caddy image](https://hub.docker.com/_/caddy) and [standard reverse-proxy forwarding behavior](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults). It provides certificate automation when DNS and ingress are correct; it does not provide high availability, a backup system or database provisioning. Monitor certificate expiry, available disk, API errors, worker backlog and unknown provider outcomes. Set achievable recovery targets after a measured restore.
+2. Fetch the reviewed branch into a new directory. If `/opt/revenuepilot` already exists, inspect it; do not overwrite it. The review branch is currently `feature/uc01-website-flow` in PR #12. Check its latest successful CI and record the commit with `git rev-parse HEAD` before installation. Use an existing approved GitHub credential for a private repo; do not embed tokens in the clone URL or chat.
 
-**Remaining execution blockers:** secure management access; actual host/DNS inventory; dedicated database/queue provisioning and credentials; owner/bootstrap recovery; production browser and provider certification. The hostname is selected, but the site is not live.
+   ```bash
+   git clone --branch feature/uc01-website-flow --single-branch https://github.com/mynameiscod/RevenuePilot-AI.git /opt/revenuepilot
+   cd /opt/revenuepilot
+   git rev-parse HEAD
+   ```
+
+3. Generate private settings once, on the server:
+
+   ```bash
+   python3 scripts/setup-hostinger.py
+   ```
+
+   Requires Python 3 and OpenSSL (already normally present on Ubuntu). Creates `.env.hostinger` mode 600 and `.hostinger-secrets` mode 700, with fresh database passwords, replica-set key, internal TLS certificates and the stable application encryption key. It prints no secrets, starts no containers and refuses to overwrite existing files. Keep an encrypted off-server backup of both before storing real data. These paths and temporary secret generation directories are excluded from Git and Docker build contexts.
+
+4. Start the private application and database services:
+
+   ```bash
+   python3 scripts/hostingerctl.py start
+   ```
+
+   The read-only preflight checks settings, Docker/Compose, unused ports, subnet overlap, DNS and basic capacity before building. Services are started only in the RevenuePilot project. Mongo initialization creates the application account with `readWrite` on its own database, starts the replica set and waits for a primary; application startup waits for healthy Mongo and Redis. This stage does not start the public Caddy edge. `start` is a first-install check, not an arbitrary retry/redeployment command: an already-created network or occupied port requires reviewing the existing project state.
+
+5. Create the first owner privately:
+
+   ```bash
+   python3 scripts/hostingerctl.py owner
+   ```
+
+   Enter your name, owner email, workspace name (default `CodeBegun`) and a new 12–128 character password. Password entry is hidden and passed to the container over stdin, never command arguments/files. Bootstrap uses the normal account-creation transaction through a short-lived listener on container loopback, holds a database lock and refuses if any account already exists. The public API keeps registration disabled. There is no default/demo production login.
+
+6. Publish and verify HTTPS:
+
+   ```bash
+   python3 scripts/hostingerctl.py publish
+   python3 scripts/hostingerctl.py status
+   ```
+
+   Publication requires an owner and disabled public registration/live-provider flags. Caddy requests the public certificate; the script verifies the real HTTPS certificate, application HTML and private-mode public configuration. It only prints success after verification. If certificate issuance is still pending, inspect DNS/ingress/edge logs locally and run `python3 scripts/hostingerctl.py verify` again. Do not disable certificate verification.
+
+7. Open `https://revenuepilot.codebegun.com`, sign in with the owner credentials you just created, enable MFA and retain recovery codes privately. There is initially no email delivery or live payment/calling/messaging execution. Configure and verify account mail before relying on email verification, password reset or staff invitations. Bootstrap does not fake a verified email.
+
+If startup fails, keep the generated credentials and all data volumes. Run `python3 scripts/hostingerctl.py status` and share only service status or a sanitized error. Do not rerun setup after removing secrets, issue global Docker cleanup, stop Piston, or use `down --volumes` on the VPS.
+
+## Required checks before real leads
+
+A published login is the infrastructure milestone, not completion of the production marketing journey.
+
+- Verify owner login, secure cookies, MFA/recovery, exact origin restrictions and real visitor IP handling behind Caddy/nginx. The private proxy trust range must match only the dedicated network.
+- Create CodeBegun forms, assign actual counselors, allow the exact website origins, and exercise lead intake, duplicate retry, tasks, follow-up, demo and reporting with synthetic records.
+- Install the separately reviewed website integration only after API readiness. The `cbwebsite` master deployment webhook is independent; this stack does not publish it. Follow [WEBSITE_FLOW.md](WEBSITE_FLOW.md) for the complete release and acceptance checklist.
+- Certify each real provider before enabling live calls, messages, conversion feedback or payments. Confirmed payments, enrollment and refunds must be verified with the selected real provider; demo results are not production payment evidence.
+- Establish an encrypted off-server database/configuration backup schedule, retention and a measured restore. Preserve the stable encryption key and private database CA alongside recoverable data; replacing the key makes stored credentials/PII unreadable. The automated CI restore is synthetic proof of the mechanism, not a backup of this VPS.
+- Monitor disk, RAM, API errors, worker backlog, Redis AOF health, failed webhooks, certificates and unknown provider outcomes. Record the recovery target and an operator for failures. Database certificates expire after 365 days; plan renewal before expiry. Caddy renews its public certificate automatically when DNS and ingress remain valid; internal database certificates require separate renewal.
+
+## Validation and operations
+
+CI verifies the actual production overlay with generated TLS material: private owner bootstrap and repeat refusal, closed registration/demo checkout, authenticated login, lead/contact flow, signed CRM webhook through Redis/BullMQ, collector routing, restricted application database privileges, unauthenticated Redis rejection, database/queue restart persistence and authenticated backup/restore into an isolated namespace. The Caddyfile is separately validated. CI does not issue a certificate for the real domain or connect to the VPS.
+
+`hostingerctl.py verify` is a first-pilot verification and expects registration, email and live providers to remain disabled. After deliberate provider rollout, use the provider acceptance checks and deployment health checks appropriate to that configuration.
+
+Retain known-good application images, source commit, configuration and database backups for upgrades. Review migrations before rolling back; preserve all database and edge volumes. Never replace existing workloads, reset the firewall, delete data or reuse LMS credentials/network to resolve an installation error. Keep workers/webhook handling available when rolling back a website with pending payments.

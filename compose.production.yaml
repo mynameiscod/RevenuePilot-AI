@@ -1,5 +1,5 @@
 # Separate from compose.yaml. Dedicated authenticated Mongo replica set and Redis
-# must already exist. Nothing here provisions or shares the LMS infrastructure.
+# can be external or supplied by compose.database.yaml. No LMS resources are shared.
 name: revenuepilot-production
 x-env: &env
   NODE_ENV: production

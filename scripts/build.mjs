@@ -2,6 +2,7 @@ import { build } from "esbuild";
 await build({
   entryPoints: {
     api: "apps/api/src/index.ts",
+    "bootstrap-owner": "scripts/bootstrap-owner.ts",
     worker: "apps/worker/src/index.ts",
     collector: "apps/collector/src/index.ts",
   },
