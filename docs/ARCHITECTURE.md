@@ -1,5 +1,11 @@
 # Technical architecture
 
+## Product direction and current implementation
+
+The product goal is to help business owners locate observed lead loss, delay and measurement gaps from marketing through a business-defined conversion, and reconcile those outcomes with advertising cost and collected revenue. CodeBegun is the first tenant; enrollment is the education example of a broader sale, booking, subscription, contract or customer-activation outcome.
+
+The [ten-stage backlog](BACKLOG.md) defines the planned cross-industry work, including generic offerings/owners, optional stages, versioned outcome rules and separate operational/financial evidence. The technical behavior below describes the current local/test implementation, which still uses course, demo and enrollment concepts; those planned generalizations are not claimed as delivered.
+
 ## Independent product boundary
 
 RevenuePilot owns identity, tenant membership, contacts, evidence, financial ledger, provider credentials and operational state. CodeBegun is the first intended tenant, not a special code path. The two seeded tenants are synthetic. No LMS source, endpoint, database, credentials, deployment or configuration is accessed. Any future CodeBegun integration must use an explicitly approved external contract; no shared collection or tenant header is trusted.

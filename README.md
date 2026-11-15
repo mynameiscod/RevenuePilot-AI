@@ -1,6 +1,10 @@
 # RevenuePilot AI
 
-An independent multi-tenant revenue workspace for CodeBegun first, with reusable provider connectors for other businesses. React, TypeScript, Vite, Bootstrap 5, Node.js, Express, MongoDB replica sets, Redis/BullMQ and Docker.
+**Product goal:** help a business owner see where leads are lost or delayed, from an ad click or other marketing interaction to a successful business conversion, and connect that journey to advertising cost and money actually collected.
+
+RevenuePilot is an independent multi-tenant product. CodeBegun is the first tenant; education is the first reference use case. The product direction covers business-specific outcomes such as a sale, booking, subscription, signed contract or enrollment. Configurable terminology, optional stages and completion rules are planned in the [ten-stage sequential backlog](docs/BACKLOG.md); they are not all implemented in the current education-shaped demo.
+
+The stack is React, TypeScript, Vite, Bootstrap 5, Node.js, Express, MongoDB replica sets, Redis/BullMQ and Docker, with reusable provider connectors.
 
 **Release 0.2: connected local/test journey implemented.** Enquiry → assigned follow-up → conversation → demo → verified payment → enrollment → attribution → approved conversion feedback. Provider code is implemented; no real provider account or production deployment is activated by this repository. It has no dependency on the LMS, shared LMS database, or LMS source code.
 
@@ -80,6 +84,7 @@ No OAuth self-service authorization UI, third-party CRM writeback, calendar invi
 
 ## Engineering references
 
+- [Product goal and ten-stage backlog](docs/BACKLOG.md)
 - [Marketing source flow and website setup](docs/MARKETING.md)
 - [Architecture and data boundaries](docs/ARCHITECTURE.md)
 - [Collection schemas and indexes](docs/SCHEMAS.md)

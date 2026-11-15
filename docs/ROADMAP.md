@@ -1,5 +1,13 @@
 # Implementation status and remaining release gates
 
+## Sequential product backlog — 15 November 2026
+
+The product goal is to show business owners where leads are lost or delayed between marketing and their business-specific successful conversion, with source/cost and collected-revenue evidence. CodeBegun remains the first tenant; education is one template rather than the limit of the product.
+
+The [ten-stage backlog](BACKLOG.md) is the current delivery sequence, with one separate GitHub issue per stage: marketing source, entry points, form interaction, lead creation, contact/qualification, demo/consultation, payment, business conversion, attribution, and improvement/feedback. Work on one item at a time, reuse the foundations below, demonstrate its acceptance criteria and review it before moving to the next.
+
+All ten expanded-scope items start in Backlog; no implementation is started by this planning update. Configurable non-education workflows and outcome rules remain planned work. [CodeBegun website / Meta Instant Forms integration #1](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) stays deferred and is linked to the relevant stages.
+
 ## Delivered in 0.2
 
 | Workstream               | Implemented scope                                                                                                                                 | Evidence                                                          |
