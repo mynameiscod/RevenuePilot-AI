@@ -1,5 +1,7 @@
 # Marketing sources: campaign to accepted enquiry
 
+For the existing CodeBegun website implementation and release checklist, see [UC-01 website flow](WEBSITE_FLOW.md).
+
 This milestone connects source setup, consented browser activity and an accepted lead inside RevenuePilot. CodeBegun is the first workspace; the same flow is tenant-scoped for other customers. No external website, LMS, real ad account or production environment is changed by this implementation.
 
 ## Walk through the first source
@@ -19,7 +21,7 @@ An external page must be connected explicitly; generating a link alone cannot ob
 - Set **Website page** when creating the campaign link. Only a configured form origin or the RevenuePilot app origin is accepted. The destination must have no existing query/fragment or embedded credentials. Production destinations require HTTPS.
 - Open **Campaign links → Setup & link → Connect your own website → Download website form**. The generated HTML uses the correct public form key and `/revenuepilot-sdk.js`. Review/adapt its consent language and styling, then place it at the chosen destination. Hosting that file is a separate explicit action; RevenuePilot does not publish it for you.
 - Alternatively wire the `createIntake` API into your existing form. Import the SDK from the **RevenuePilot origin**, call `info()` for the current consent version, call `setConsent()` from actual unchecked-by-default visitor choices, record viewed/started/submitted when appropriate and submit the contact using `submit()`.
-- Keep `rp_link` and campaign parameters in the visitor's destination URL. Instantiate intake on that destination before changing its URL. The SDK retains that page's initial source in memory. It does not persist source identity across full page reloads, browser sessions or devices. Separate landing-page and form-page navigation must preserve campaign parameters; do not add contact details to them.
+- Keep `rp_link` and campaign parameters in the visitor's destination URL. Instantiate intake on that destination before changing its URL. By default the SDK retains the initial source in memory. `storage: "session"` enables consented, same-form/same-tab continuity for 30 minutes; it never persists contact fields or identifies another device. Separate landing-page and form-page navigation must preserve campaign parameters; do not add contact details to them.
 - Both development Vite and built Nginx serve the public module with `Access-Control-Allow-Origin: *`. This applies only to the code asset. Form requests still require an exact registered origin and omit session credentials. A website's own CSP must permit the RevenuePilot script and API origin.
 - A localhost API is reachable only from the same computer. Public websites need an approved reachable HTTPS RevenuePilot installation before real visitors can submit.
 
@@ -81,6 +83,6 @@ Owners/admins create and pause links; analysts can read marketing with contact m
 
 Reports reject oversized windows instead of silently truncating calculations: 10,000 leads, 20,000 attempts, 20,000 imported spend rows, and 100,000 touches/import links. The maximum 200 active forms matches the highest current plan allowance. Larger customers require materialized/paginated analytics before expansion.
 
-No request URLs should carry names, email, phone or other contact data. The supplied Nginx access log excludes query strings. The SDK sends only allowlisted acquisition fields after consent; its initial snapshot is memory-only. Third-party web servers/proxies may have their own URL logs and require their own review. Revoking measurement at submit removes this attempt's earlier observation; a later observation cannot recreate a committed untracked attempt. Consent withdrawal cannot recall a request already in flight.
+No request URLs should carry names, email, phone or other contact data. The supplied Nginx access log excludes query strings. The SDK sends only allowlisted acquisition fields after consent; its initial snapshot is memory-only unless same-tab continuity is explicitly enabled after consent. Third-party web servers/proxies may have their own URL logs and require their own review. Revoking measurement at submit removes this attempt's earlier observation; a later observation cannot recreate a committed untracked attempt. Consent withdrawal cannot recall a request already in flight.
 
 Run `tests/marketing.test.ts` for source classification, canonical link resolution, concurrent attempt dedupe, returning enquiries, opt-out, tenant/role boundaries, paused links and exact ad-cost joins. Startup and Docker smoke checks verify cross-origin SDK asset delivery. The browser acceptance path is steps 1–5 above, plus the downloaded external form on an allowed origin. Real ad account reconciliation and public website installation remain separate activation work.

@@ -95,6 +95,7 @@ const lead = new Schema(
     lastContactAt: Date,
     note: { type: String, default: "" },
     formId: String,
+    entryPoint: { type: String, enum: ["hosted_form", "website"] },
     erasedAt: Date,
     lossReason: String,
   },

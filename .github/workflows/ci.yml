@@ -31,6 +31,29 @@ jobs:
         if: runner.os == 'Linux'
         env:
           DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - name: Validate isolated production template
+        run: docker compose -f compose.production.yaml config --quiet
+        if: runner.os == 'Linux'
+        env:
+          DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          MONGODB_URI: mongodb://synthetic:synthetic@mongo.example.test/revenuepilot?replicaSet=rs0
+          REDIS_URL: rediss://synthetic:synthetic@redis.example.test:6379
+          WEB_ORIGIN: https://pilot.example.test
+          TRUST_PROXY_CIDRS: 172.30.84.0/24
+
+      - name: Validate Hostinger configuration and preflight
+        if: runner.os == 'Linux'
+        env:
+          DATA_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          MONGODB_URI: mongodb://synthetic:synthetic@mongo.example.test/revenuepilot?replicaSet=rs0
+          REDIS_URL: rediss://synthetic:synthetic@redis.example.test:6379
+          WEB_ORIGIN: https://revenuepilot.example.test
+          REVENUEPILOT_DOMAIN: revenuepilot.example.test
+          TRUST_PROXY_CIDRS: 172.30.84.0/24
+        run: |
+          python3 scripts/test-hostinger-preflight.py
+          docker compose -f compose.production.yaml -f compose.hostinger.yaml config --quiet
+          docker run --rm -e REVENUEPILOT_DOMAIN -v "$PWD/deploy/hostinger/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
   docker-stack:
     runs-on: ubuntu-latest
@@ -56,3 +79,28 @@ jobs:
       - name: Remove isolated CI resources
         if: always()
         run: docker compose down --volumes
+
+  hostinger-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      - name: Create and verify private synthetic settings
+        run: |
+          python3 scripts/test-hostinger-preflight.py
+          python3 scripts/test-hostinger-setup.py
+          python3 scripts/setup-hostinger.py --domain revenuepilot.example.test --expected-ip 203.0.113.12
+          docker compose -p revenuepilot-vps-ci --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml config --quiet
+      - name: Boot isolated production services without public edge
+        run: docker compose -p revenuepilot-vps-ci --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml up -d --build --wait --wait-timeout 240 api collector worker web
+      - name: Test owner, TLS databases, worker, persistence and restore
+        run: python3 scripts/smoke-hostinger.py
+      - name: Synthetic CI diagnostics
+        if: failure()
+        run: docker compose -p revenuepilot-vps-ci --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml logs --tail=80
+      - name: Remove isolated CI resources
+        if: always()
+        run: docker compose -p revenuepilot-vps-ci --env-file .env.hostinger -f compose.production.yaml -f compose.database.yaml -f compose.hostinger.yaml down --volumes

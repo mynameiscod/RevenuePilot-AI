@@ -1074,9 +1074,13 @@ function LegacyLeadRoute() {
 }
 
 function Revenue() {
+  const [paymentParams] = useSearchParams();
+  const initialLeadId = paymentParams.get("leadId") ?? "";
   const { tenant, refresh } = useWorkspace(),
     [page, setPage] = useState(1),
-    [create, setCreate] = useState(false);
+    [create, setCreate] = useState(
+      !!initialLeadId && can(tenant.role, "revenue.write"),
+    );
   const { data, error, loading } = useLoad<{
     items: ReceiptView[];
     total: number;
@@ -1092,6 +1096,14 @@ function Revenue() {
         title="Payment records"
         text="Recorded receipts and refunds, with each currency kept separate."
       >
+        {initialLeadId && (
+          <Link
+            className="btn btn-outline-secondary"
+            to={`/leads/${encodeURIComponent(initialLeadId)}?tab=payment`}
+          >
+            Return to lead
+          </Link>
+        )}
         {can(tenant.role, "revenue.write") && (
           <button className="btn btn-primary" onClick={() => setCreate(true)}>
             <Plus size={16} /> Record receipt
@@ -1229,16 +1241,27 @@ function Revenue() {
           </>
         )}
       </section>
-      {create && <ReceiptForm close={() => setCreate(false)} />}
+      {create && (
+        <ReceiptForm
+          initialLeadId={initialLeadId}
+          close={() => setCreate(false)}
+        />
+      )}
     </>
   );
 }
-function ReceiptForm({ close }: { close: () => void }) {
+function ReceiptForm({
+  close,
+  initialLeadId = "",
+}: {
+  close: () => void;
+  initialLeadId?: string;
+}) {
   const { prefix, tenant, refresh, notify } = useWorkspace();
   const [query, setQuery] = useState(""),
     [search, setSearch] = useState(""),
     [kind, setKind] = useState("capture"),
-    [selectedLead, setSelectedLead] = useState(""),
+    [selectedLead, setSelectedLead] = useState(initialLeadId),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const captures = useLoad<{ items: ReceiptView[] }>(
@@ -1246,6 +1269,9 @@ function ReceiptForm({ close }: { close: () => void }) {
   );
   const leads = useLoad<{ items: LeadView[] }>(
     `/leads?q=${encodeURIComponent(query)}&limit=100`,
+  );
+  const initialLead = useLoad<{ lead: LeadView }>(
+    initialLeadId ? `/leads/${encodeURIComponent(initialLeadId)}` : null,
   );
   const key = useRef(crypto.randomUUID());
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -1317,7 +1343,11 @@ function ReceiptForm({ close }: { close: () => void }) {
             <option value="" disabled>
               Select a lead
             </option>
-            {leads.data?.items.map((l) => (
+            {[
+              ...(initialLead.data ? [initialLead.data.lead] : []),
+              ...(leads.data?.items.filter((l) => l.id !== initialLeadId) ??
+                []),
+            ].map((l) => (
               <option value={l.id} key={l.id}>
                 {l.name} · {l.course}
               </option>
@@ -1407,10 +1437,7 @@ function ReceiptForm({ close }: { close: () => void }) {
           >
             Cancel
           </button>
-          <button
-            className="btn btn-primary"
-            disabled={busy || !leads.data?.items.length}
-          >
+          <button className="btn btn-primary" disabled={busy || !selectedLead}>
             {busy ? "Recording…" : "Record evidence"}
           </button>
         </div>

@@ -244,6 +244,9 @@ export const Enrollment = model(
       default: "confirmed",
     },
     confirmedAt: Date,
+    confirmedBy: String,
+    confirmedByName: String,
+    confirmationNote: String,
   },
   [
     [{ tenantId: 1, orderId: 1 }, { unique: true }],

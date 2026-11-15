@@ -435,7 +435,7 @@ const labels: Record<string, string> = {
   qualified: "Qualified",
   demo_scheduled: "Demo scheduled",
   demo_attended: "Demo attended",
-  payment_captured: "Payment confirmed",
+  payment_captured: "Payment recorded",
   enrollment_confirmed: "Enrollment confirmed",
 };
 export function FlowReport() {

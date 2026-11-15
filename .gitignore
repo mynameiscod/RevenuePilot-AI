@@ -9,3 +9,10 @@ test-results/
 *.log
 *.tsbuildinfo
 .DS_Store
+
+__pycache__/
+*.pyc
+
+.hostinger-secrets/
+
+.rp-setup-*/

@@ -1185,6 +1185,11 @@ export async function executeCommand(id: string, config: Config) {
         ["sandbox", "provider_test"].includes(String(milestone.evidence))
       )
         throw new ProviderError("SYNTHETIC_CONVERSION_DENIED");
+      if (
+        milestone.type === "enrollment_confirmed" &&
+        milestone.evidence === "staff_confirmed"
+      )
+        throw new ProviderError("STAFF_ENROLLMENT_NOT_PAYMENT_VERIFIED");
       const touch = await Touch.findOne({
         tenantId: command.tenantId,
         leadId: lead._id,

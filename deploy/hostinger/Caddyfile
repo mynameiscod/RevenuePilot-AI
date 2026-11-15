@@ -1,0 +1,10 @@
+{
+	admin off
+}
+
+{$REVENUEPILOT_DOMAIN} {
+	encode zstd gzip
+	# No access logging: URLs can contain marketing identifiers.
+	# Default untrusted incoming forwarded headers are replaced by Caddy.
+	reverse_proxy web:8080
+}

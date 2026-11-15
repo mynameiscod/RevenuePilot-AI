@@ -10,6 +10,11 @@ const config = readConfig();
 await connectDatabase(config.MONGODB_URI);
 const app = express();
 app.disable("x-powered-by");
+if (config.TRUST_PROXY_CIDRS)
+  app.set(
+    "trust proxy",
+    config.TRUST_PROXY_CIDRS.split(",").map((value) => value.trim()),
+  );
 app.use(helmet());
 app.use((req, res, next) => {
   req.requestId = randomUUID();

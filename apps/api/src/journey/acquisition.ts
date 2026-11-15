@@ -129,7 +129,9 @@ export async function ingestLead(
         course: String(form.course),
         channel: source?.source ?? "Other",
         campaign: source?.campaign ?? "",
-        note: "Enquiry accepted through a hosted form.",
+        note:
+          input.message ||
+          `Enquiry accepted through ${input.entryPoint === "website" ? "an existing website" : "a hosted form"}.`,
       },
       requestId,
       config,
@@ -138,7 +140,7 @@ export async function ingestLead(
     leadId = result.id;
     await Lead.updateOne(
       { _id: leadId, tenantId },
-      { $set: { formId: form._id } },
+      { $set: { formId: form._id, entryPoint: input.entryPoint } },
       { session },
     );
     await Identity.create(
@@ -177,7 +179,7 @@ export async function ingestLead(
       leadId,
       "enquiry.repeated.v1",
       "Returning enquiry",
-      String(form.course),
+      [String(form.course), input.message].filter(Boolean).join(" — "),
       "public-form",
       session,
     );
@@ -263,6 +265,7 @@ export async function ingestLead(
 export function acquisitionRouter(config: Config) {
   const router = Router();
   router.use("/:publicKey", async (req, res, next) => {
+    res.set("Cache-Control", "no-store");
     const publicKey = z.string().min(20).max(100).parse(req.params.publicKey);
     await rateLimit(`form-read:${req.ip}`, 120);
     const form = await Form.findOne({ publicKey, active: true }).lean();
@@ -400,7 +403,15 @@ export function acquisitionRouter(config: Config) {
       formId: form._id,
       attemptId: input.attemptId,
     };
-    const requestHash = digest(JSON.stringify(input));
+    // Preserve replay hashes for SDKs deployed before entryPoint/message existed.
+    const { entryPoint, message, ...legacyInput } = input;
+    const requestHash = digest(
+      JSON.stringify({
+        ...legacyInput,
+        ...(req.body.entryPoint !== undefined ? { entryPoint } : {}),
+        ...(req.body.message !== undefined ? { message } : {}),
+      }),
+    );
     const acceptanceToken = createHmac(
       "sha256",
       Buffer.from(config.DATA_ENCRYPTION_KEY, "hex"),

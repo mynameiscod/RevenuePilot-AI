@@ -235,6 +235,7 @@ export function allocate(
 }
 
 export interface LeadView {
+  entryPoint?: "hosted_form" | "website";
   id: string;
   name: string;
   email: string;

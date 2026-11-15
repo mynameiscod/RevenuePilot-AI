@@ -129,13 +129,11 @@ export function publicAccountRouter(config: Config) {
           ),
         );
     }
-    res
-      .status(202)
-      .json({
-        accepted: true,
-        message:
-          "If an account exists, a reset link will be sent when email delivery is configured.",
-      });
+    res.status(202).json({
+      accepted: true,
+      message:
+        "If an account exists, a reset link will be sent when email delivery is configured.",
+    });
   });
   router.post("/reset-password", async (req, res) => {
     await rateLimit(`reset-use:${req.ip}`, 10, 900000);
@@ -776,6 +774,11 @@ export function tenantAccountRouter(config: Config) {
         await Receipt.updateMany(
           scope,
           { $set: { note: "Contact erased; financial record retained." } },
+          { session },
+        );
+        await Enrollment.updateMany(
+          scope,
+          { $unset: { confirmationNote: 1 } },
           { session },
         );
         await audit(

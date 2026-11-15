@@ -194,3 +194,13 @@ Command kinds: call/message/analysis/conversion. Calls/messages require marketin
 Collector batches contain 1–50 page/form observations, pseudonymous IDs, occurredAt, consent literal `granted`, query-free path and strict payload. Timestamps accept up to seven days old/five minutes future. No lead/receipt mutation is exposed by the collector.
 
 `/health/live` and `/health/ready` are outside `/api/v1`; readiness checks MongoDB only. Pagination defaults page1/limit25, maximum100/page and page10000. Reports return 422 when bounded processing limits are exceeded. No unrestricted MongoDB query, arbitrary HTTP proxy or generic untyped provider execution endpoint exists.
+
+### Existing website intake additions
+
+`POST /public/forms/:key/submit` accepts optional `entryPoint` (`website` or `hosted_form`, default `hosted_form`) and `message` (trimmed, maximum 1,000 characters). Messages are functional enquiry details, not telemetry. Lead responses expose optional `entryPoint`; notes retain existing role masking. `GET /public/forms/:key` is not cached. Legacy payload replay hashes remain compatible. The SDK exposes structured `IntakeError` (`code`, `retryable`, `requestId`), bounds requests, coalesces duplicates and locks uncertain retries to the original payload.
+
+## Staff-confirmed enrollment (manual-payment pilot)
+
+`POST T/leads/:leadId/enrollment` requires `leads.write`, the assigned-lead scope, CSRF and an Idempotency-Key. Body: `{version, note, reviewAcknowledged?: false}`. It writes one staff enrollment record, actor/name/time/note, a milestone, timeline and audit event atomically, and advances the lead stage/version. Exact retries return the same receipt; stale versions or a previously confirmed enrollment return 409. An erased or foreign/unassigned lead returns 404. A manual refund or moving the lead out of the enrolled stage makes staff enrollment review-required; reconfirmation requires an explicit review acknowledgement and note. Provider-backed enrollment reviews require provider resolution. Confirmation notes are restricted to PII-authorized readers and removed during erasure.
+
+Staff confirmation is independent of money: it creates no receipt, checkout order, call, message, LMS record or advertising feedback. Staff enrollment cannot be sent as a payment-verified advertising conversion. Manual `POST T/revenue` captures now create `payment_captured` milestones with `manual_record` evidence; refunds create `payment_refunded` milestones and mark staff enrollments for review. Manual money remains separate from provider-verified money and never supplies live ROAS.

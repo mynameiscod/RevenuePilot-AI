@@ -104,3 +104,9 @@ npm audit --omit=dev --audit-level=high
 ```
 
 CI runs the same checks on Linux/Node 24.22.1 and Windows/Node 24.11.0, plus an isolated Docker stack test. See the [current Actions results](https://github.com/mynameiscod/RevenuePilot-AI/actions). Passing protocol fixtures does not certify a real vendor account. This is a pilot implementation; measured load, restore drills on the chosen infrastructure and provider acceptance remain production release gates.
+
+## Existing website flow (UC-01)
+
+[Complete operating flow, production setup and acceptance checklist](docs/WEBSITE_FLOW.md). The paired CodeBegun website change is gated by public build settings; installation and live provider certification remain required before activation.
+
+Selected VPS target and deployment profile: [Hostinger VPS runbook](docs/HOSTINGER_VPS.md). Server access and actual deployment verification remain pending.

@@ -100,3 +100,58 @@ describe("lead journey evidence", () => {
     expect(steps.some((s) => s.tab === "payment")).toBe(false);
   });
 });
+
+describe("manual operating flow", () => {
+  it("shows staff enrollment without inventing cash, conversations or demos", () => {
+    const steps = journeyProgress(
+      journey({
+        milestones: [
+          {
+            type: "enrollment_confirmed",
+            occurredAt: time,
+            evidence: "staff_confirmed",
+          },
+        ],
+        enrollments: [{ status: "confirmed", evidence: "staff_confirmed" }],
+      }),
+    );
+    expect(steps.map((s) => s.state)).toEqual([
+      "recorded",
+      "pending",
+      "pending",
+      "pending",
+      "recorded",
+    ]);
+    expect(steps[4].detail).toBe("Staff confirmed");
+  });
+  it("labels manual receipts separately and retains refund evidence after staff review", () => {
+    const input = journey({
+      milestones: [
+        {
+          type: "payment_captured",
+          occurredAt: time,
+          evidence: "manual_record",
+        },
+      ],
+    });
+    expect(journeyProgress(input)[3].detail).toBe("Manually recorded");
+    input.milestones.push({
+      type: "payment_refunded",
+      occurredAt: time,
+      evidence: "manual_record",
+    });
+    input.enrollments.push({
+      status: "confirmed",
+      evidence: "staff_confirmed",
+    });
+    const steps = journeyProgress(input);
+    expect(steps[3]).toMatchObject({
+      state: "review",
+      detail: "Refund recorded",
+    });
+    expect(steps[4]).toMatchObject({
+      state: "recorded",
+      detail: "Staff confirmed",
+    });
+  });
+});

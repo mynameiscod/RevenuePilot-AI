@@ -441,3 +441,55 @@ describe("real MongoDB API workflows", () => {
       .expect(401);
   });
 });
+
+it("limits staff enrollment to the tenant and counselor assignment, with no automatic cash", async () => {
+  const other = await createActor(
+    "staff-other-owner@example.test",
+    "owner",
+    b.tenantId,
+  );
+  const staff = await createActor(
+    "staff-counselor@example.test",
+    "counselor",
+    a.tenantId,
+  );
+  const owned = (
+    await send(a, "post", "/leads", {
+      ...leadBody,
+      email: "staff-scope@example.test",
+    }).expect(201)
+  ).body;
+  const input = { version: 1, note: "Staff admission decision" };
+  await send(other, "post", `/leads/${owned.id}/enrollment`, input).expect(404);
+  await send(viewer, "post", `/leads/${owned.id}/enrollment`, input).expect(
+    403,
+  );
+  await send(staff, "post", `/leads/${owned.id}/enrollment`, input).expect(404);
+  await Lead.updateOne(
+    { tenantId: a.tenantId, _id: owned.id },
+    { $set: { assignedTo: staff.userId } },
+  );
+  await send(staff, "post", `/leads/${owned.id}/enrollment`, input).expect(201);
+  expect(
+    await Receipt.countDocuments({ tenantId: a.tenantId, leadId: owned.id }),
+  ).toBe(0);
+  const paymentOnly = (
+    await send(a, "post", "/leads", {
+      ...leadBody,
+      email: "payment-only@example.test",
+    }).expect(201)
+  ).body;
+  await send(a, "post", "/revenue", {
+    leadId: paymentOnly.id,
+    kind: "capture",
+    amountMinor: "10000",
+    currency: "INR",
+    reference: "PAYMENT-ONLY-QA",
+    note: "Local synthetic evidence",
+  }).expect(201);
+  const journey = (
+    await send(a, "get", `/leads/${paymentOnly.id}/journey`).expect(200)
+  ).body;
+  expect(journey.enrollments).toEqual([]);
+  expect(journey.lead.stage).toBe("new");
+});

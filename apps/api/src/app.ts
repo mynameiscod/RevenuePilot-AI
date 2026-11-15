@@ -67,7 +67,13 @@ import {
   overview,
 } from "./services.ts";
 import { rateLimit } from "./rate-limit.ts";
-import { Command, PaymentOrder, Webhook, SyncRun } from "./journey/models.ts";
+import {
+  Command,
+  PaymentOrder,
+  Webhook,
+  SyncRun,
+  Enrollment,
+} from "./journey/models.ts";
 import { collectorRouter } from "./collector.ts";
 import { acquisitionRouter } from "./journey/acquisition.ts";
 import { journeyRouter } from "./journey/routes.ts";
@@ -160,6 +166,11 @@ export function createApp(config: Config) {
   const app = express();
   const webOrigins = allowedWebOrigins(config);
   app.disable("x-powered-by");
+  if (config.TRUST_PROXY_CIDRS)
+    app.set(
+      "trust proxy",
+      config.TRUST_PROXY_CIDRS.split(",").map((value) => value.trim()),
+    );
   app.use((req, res, next) => {
     req.requestId = randomUUID();
     res.set("X-Request-Id", req.requestId);
@@ -633,6 +644,17 @@ export function createApp(config: Config) {
           req.requestId,
           session,
         );
+        if (input.stage !== "enrolled")
+          await Enrollment.updateMany(
+            {
+              tenantId: req.auth!.tenantId,
+              leadId: id,
+              evidence: "staff_confirmed",
+              status: "confirmed",
+            },
+            { $set: { status: "review_required" } },
+            { session },
+          );
         if (["qualified", "lost"].includes(input.stage))
           await milestone(
             req.auth!.tenantId!,

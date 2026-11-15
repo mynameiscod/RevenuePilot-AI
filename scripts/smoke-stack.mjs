@@ -1,8 +1,10 @@
 // Exercises the built nginx/API/collector/MongoDB/Redis/worker stack in isolation.
 import assert from "node:assert/strict";
 import { randomUUID, createHmac } from "node:crypto";
-const origin = "http://localhost:3001";
-const sdk = await fetch(`${origin}/revenuepilot-sdk.js`, {
+const production = process.env.RP_SMOKE_PRODUCTION === "true";
+const base = production ? "http://127.0.0.1:8081" : "http://localhost:3001";
+const origin = production ? "https://revenuepilot.example.test" : base;
+const sdk = await fetch(`${base}/revenuepilot-sdk.js`, {
   headers: { Origin: "https://landing.example.test" },
 });
 assert.equal(sdk.status, 200);
@@ -13,7 +15,7 @@ let cookie = "",
   csrf = "",
   tenantId = "";
 async function api(path, body, expected = 200, method = body ? "POST" : "GET") {
-  const response = await fetch(`${origin}/api/v1${path}`, {
+  const response = await fetch(`${base}/api/v1${path}`, {
     method,
     headers: {
       Origin: origin,
@@ -32,15 +34,24 @@ async function api(path, body, expected = 200, method = body ? "POST" : "GET") {
     cookie = response.headers.get("set-cookie").split(";")[0];
   return response.status === 204 ? null : response.json();
 }
+const owner = {
+  name: "Stack Owner",
+  email: "stack-owner@example.test",
+  password: "Synthetic-stack-password!",
+  workspaceName: "Stack Test",
+};
+if (production) {
+  assert.deepEqual(await api("/public/config"), {
+    demo: false,
+    registration: false,
+    localPreview: false,
+  });
+  await api("/auth/register", owner, 403);
+}
 const registration = await api(
-  "/auth/register",
-  {
-    name: "Stack Owner",
-    email: "stack-owner@example.test",
-    password: "Synthetic-stack-password!",
-    workspaceName: "Stack Test",
-  },
-  201,
+  production ? "/auth/login" : "/auth/register",
+  production ? { email: owner.email, password: owner.password } : owner,
+  production ? 200 : 201,
 );
 csrf = registration.csrfToken;
 tenantId = registration.tenants[0].id;
@@ -78,13 +89,17 @@ await api(`${t}/leads/${lead.id}/outcomes`, {
   outcome: "answered",
   note: "Synthetic stack conversation",
 });
-await api("/public/checkout/simulate", {
-  acceptanceToken: enquiry.acceptanceToken,
-});
+await api(
+  "/public/checkout/simulate",
+  {
+    acceptanceToken: enquiry.acceptanceToken,
+  },
+  production ? 404 : 200,
+);
 const report = await api(`${t}/journey/analytics`);
 assert.equal(
   report.funnel.find((r) => r.type === "enrollment_confirmed").count,
-  1,
+  production ? 0 : 1,
 );
 const secret = "synthetic-stack-signing-secret";
 const connection = await api(
@@ -119,7 +134,7 @@ const body = JSON.stringify({
 });
 const timestamp = String(Math.floor(Date.now() / 1000));
 const webhook = await fetch(
-  `${origin}/api/v1/webhooks/integrations/${connection.id}`,
+  `${base}/api/v1/webhooks/integrations/${connection.id}`,
   {
     method: "POST",
     headers: {
@@ -147,7 +162,7 @@ const site = await api(
   { name: "Stack site", origins: [origin] },
   201,
 );
-const telemetry = await fetch(`${origin}/api/v1/collect`, {
+const telemetry = await fetch(`${base}/api/v1/collect`, {
   method: "POST",
   headers: { Origin: origin, "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -173,5 +188,7 @@ assert.equal(
 );
 assert.equal((await telemetry.json()).acceptedIds.length, 1);
 console.log(
-  "Built-stack smoke passed: registration, intake, contact, sandbox payment/enrollment, signed webhook, Redis worker and collector routing.",
+  production
+    ? "Production stack passed: private owner login, closed registration/demo checkout, intake, contact, signed webhook, TLS Redis worker and collector."
+    : "Development stack passed: registration, intake, contact, sandbox payment/enrollment, signed webhook, worker and collector.",
 );

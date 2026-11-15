@@ -60,6 +60,33 @@ describe("security and domain invariants", () => {
       }),
     ).toThrow();
   });
+  it("rejects blanket proxy trust and supports optional account mail configuration", () => {
+    const env = {
+      MONGODB_URI: "mongodb://localhost/rp",
+      DATA_ENCRYPTION_KEY: key,
+    };
+    for (const TRUST_PROXY_CIDRS of [
+      "true",
+      "*",
+      "0.0.0.0/0",
+      "::/0",
+      "127.0.0.1/33",
+      "1",
+      "127.0.0.1,",
+    ])
+      expect(() => readConfig({ ...env, TRUST_PROXY_CIDRS })).toThrow();
+    expect(
+      readConfig({
+        ...env,
+        TRUST_PROXY_CIDRS: "172.30.84.0/24,::1",
+        ACCOUNT_EMAIL_FROM: "",
+      }).ACCOUNT_EMAIL_FROM,
+    ).toBeUndefined();
+    expect(
+      readConfig({ ...env, ACCOUNT_EMAIL_FROM: "support@example.test" })
+        .ACCOUNT_EMAIL_FROM,
+    ).toBe("support@example.test");
+  });
   it("conserves integer money across weights and refunds with deterministic rounding", () => {
     expect(allocate(100n, ["c", "a", "b"])).toEqual({
       a: "34",
