@@ -46,6 +46,14 @@ Each GitHub issue contains the owner's question, existing foundation, scope, dep
 
 **Current work in progress: none under this new backlog.** Start with item 01 when implementation resumes. Existing features should be reused and checked against the expanded business goal; this is not a rebuild from zero.
 
+## Business use cases within the stages
+
+The [eight business use cases and detailed acceptance checklists](BUSINESS_USE_CASES.md) cover existing website forms, RevenuePilot-hosted forms, Meta Instant Forms, WhatsApp enquiries, inbound phone calls, walk-ins, referrals and existing CRM imports. They are recorded under the relevant existing GitHub issues; no duplicate top-level stages are needed.
+
+Source, actual contact route, ingestion mechanism and offering must remain separate. The shared backlog also covers safe contact/opportunity matching, assignment and follow-up, optional appointments, payment evidence and the separation of Offering / Entry point / Lead journey. Referral is a source, and a CRM is an ingestion mechanism; neither should erase the original contact route when it is known.
+
+All of these use-case tasks remain in Backlog. The current local/demo foundations are reused, and the actual CodeBegun website/Meta integration in issue #1 remains deferred.
+
 ## One stage at a time
 
 1. Select the next numbered item and mark it In progress.

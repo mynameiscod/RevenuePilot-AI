@@ -8,6 +8,8 @@ The [ten-stage backlog](BACKLOG.md) is the current delivery sequence, with one s
 
 All ten expanded-scope items start in Backlog; no implementation is started by this planning update. Configurable non-education workflows and outcome rules remain planned work. [CodeBegun website / Meta Instant Forms integration #1](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) stays deferred and is linked to the relevant stages.
 
+The [business use-case map](BUSINESS_USE_CASES.md) expands the existing issues with eight capture/origination scenarios and their specific acceptance checklists. Incoming WhatsApp-to-lead capture, inbound telephony, complete CRM outcome handoff and the Offering / Entry point / Lead journey split remain planned, not activated. These details do not alter the one-stage-at-a-time sequence.
+
 ## Delivered in 0.2
 
 | Workstream               | Implemented scope                                                                                                                                 | Evidence                                                          |
