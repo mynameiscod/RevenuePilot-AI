@@ -4,6 +4,8 @@ Agreed on 15 November 2026. This is the product delivery plan; it does not mark 
 
 ## Current delivery update — 16 November 2026
 
+Code merged: [RevenuePilot #16](https://github.com/mynameiscod/RevenuePilot-AI/pull/16) into main and [cbwebsite #2](https://github.com/mynameiscod/cbwebsite/pull/2) into master. Both CI suites passed. Production rollout and live Google activation are still pending; the broad issues remain open.
+
 The supplied architecture is tracked by [epic #13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13), with [marketing recovery #14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14) and [AI Lead Intelligence #15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15). The existing ten stages and eight use cases remain the source of truth; they were extended rather than duplicated.
 
 | Scope | Current status | Remaining gate |

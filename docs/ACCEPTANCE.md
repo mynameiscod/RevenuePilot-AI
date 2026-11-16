@@ -2,6 +2,8 @@
 
 ## Marketing intelligence / recovery — 16 November 2026
 
+Merged code verification: [RevenuePilot run 43808399131](https://github.com/mynameiscod/RevenuePilot-AI/actions/runs/43808399131) passed Linux/Windows tests and builds, audits, Docker smoke/restore and isolated Hostinger stack/restore. [Website run 43808658745](https://github.com/mynameiscod/cbwebsite/actions/runs/43808658745) passed both capture modes, including the final consent rollback/re-grant corrections. Changes merged through RevenuePilot #16 and cbwebsite #2. These are CI containers and synthetic checks, not deployment to the user's VPS or Google activation.
+
 Local verification passes **110 tests in 15 files**, TypeScript and production builds for RevenuePilot and cbwebsite. New tests cover pending/mature/accepted classification, missing observations, failure symptoms, strict rule-only recipes, Meta unsupported capability, foreign tenant access, read/write roles, idempotent draft creation, version conflicts, rejection of contact-list uploads, and acceptance removing an attempt from recovery candidates. Focused marketing tests were rerun after capability changes.
 
 Website tests pass for denied/granted/withdrawn/re-granted/expired consent, the disabled recovery flag, no automatic upgrade from old permission, bounded event queue, allowlisted parameters, query/token stripping, broken-tag isolation and distinction between start and accepted enquiry. Existing intake tests cover safe duplicate/uncertain retries. This is mocked Google transport, not proof of Google account receipt or delivery.

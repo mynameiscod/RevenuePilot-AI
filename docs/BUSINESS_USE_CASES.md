@@ -1,12 +1,12 @@
 # Business use cases and backlog mapping
 
-Updated 16 November 2026. **Status: UC-01 capture foundation deployed previously; the new marketing/recovery increment is code complete in review; wider route acceptance remains open.** These are eight business use cases within the existing ten delivery stages, not eight new stages. [Architecture #13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13), [recovery #14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14) and [AI intelligence #15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15) extend the existing issue map.
+Updated 16 November 2026. **Status: UC-01 capture foundation deployed previously; the new marketing/recovery code is merged with passing CI; deployment/provider verification and wider route acceptance remain open.** These are eight business use cases within the existing ten delivery stages, not eight new stages. [Architecture #13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13), [recovery #14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14) and [AI intelligence #15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15) extend the existing issue map.
 
 ## Marketing, recovery and intelligence by use case
 
 | Use case | Available observation / next recovery work | Status and owning issues |
 | --- | --- | --- |
-| UC-01 existing website | Consented view/start/submit/error/acceptance; mature gaps; Google/YouTube rule-only recipe; website personalization/event wrapper | Code complete in #16 and cbwebsite#2; deployment and real audience matching/exclusion still required; #4 #14 |
+| UC-01 existing website | Consented view/start/submit/error/acceptance; mature gaps; Google/YouTube rule-only recipe; website personalization/event wrapper | Merged in #16 and cbwebsite#2; deployment and real audience matching/exclusion still required; #4 #14 |
 | UC-02 hosted form | Existing capture events feed local gap diagnostics; hosted Google event/consent adapter is not installed by this increment | Google event parity and live setup remain #3 #14 |
 | UC-03 native Meta form | Provider submission and available campaign/ad metadata; unavailable pre-submission identity/history remains unknown | Verified notification/import mapping and provider-native recovery remain #1 #3 #14 |
 | UC-04 WhatsApp | Available inbound/referral and reply evidence; stop/consent state, first response and overdue conversation | Inbound capture and channel-aware recovery remain #3 #6 #14 |
