@@ -13,6 +13,7 @@ import {
   registrationInput,
   loginInput,
   leadInput,
+  leadNoteInput,
   stageInput,
   receiptInput,
   settingsInput,
@@ -585,6 +586,43 @@ export function createApp(config: Config) {
           occurredAt: e.occurredAt,
         })),
       });
+    },
+  );
+  router.post(
+    "/leads/:leadId/notes",
+    requirePermission("leads.write"),
+    async (req, res) => {
+      const input = leadNoteInput.parse(req.body);
+      const id = String(req.params.leadId);
+      const result = await idempotent(
+        req.auth!,
+        `POST/leads/${id}/notes`,
+        req.get("Idempotency-Key") ?? "",
+        input,
+        async (session) => {
+          // Serialize with erasure/status writes so a concurrent erasure cannot
+          // be followed by a newly committed note containing the old contact's data.
+          const lead = await Lead.findOneAndUpdate(
+            { ...leadScope(req.auth!), _id: id, erasedAt: { $exists: false } },
+            { $inc: { version: 1 } },
+            { session, returnDocument: "after" },
+          ).lean();
+          if (!lead)
+            throw new AppError(404, "LEAD_NOT_FOUND", "Lead not found.");
+          await timeline(
+            req.auth!.tenantId!,
+            id,
+            "lead.note_added.v1",
+            "Note added",
+            input.note,
+            req.auth!.userId,
+            session,
+          );
+          await audit(req.auth!, "lead.note_added", id, req.requestId, session);
+          return { saved: true };
+        },
+      );
+      res.status(201).json(result);
     },
   );
   router.patch(

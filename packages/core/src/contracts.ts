@@ -72,6 +72,9 @@ export function can(role: Role, permission: string) {
   return permissions[role].includes(permission);
 }
 export const identifier = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
+export const leadNoteInput = z
+  .object({ note: z.string().trim().min(3).max(1000) })
+  .strict();
 export const moneyMinor = z
   .string()
   .regex(/^[1-9]\d{0,15}$/)

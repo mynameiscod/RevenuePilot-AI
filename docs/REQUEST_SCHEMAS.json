@@ -632,6 +632,21 @@
       ],
       "additionalProperties": false
     },
+    "leadNoteInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "note"
+      ],
+      "additionalProperties": false
+    },
     "loginInput": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",

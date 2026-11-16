@@ -401,6 +401,7 @@ function Shell({
     [revision, setRevision] = useState(0),
     [toast, setToast] = useState(""),
     [mobile, setMobile] = useState(false),
+    [navigationCollapsed, setNavigationCollapsed] = useState(false),
     [help, setHelp] = useState(false),
     [workspaceModal, setWorkspaceModal] = useState(false),
     [search, setSearch] = useState("");
@@ -421,6 +422,7 @@ function Shell({
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
   const nav = primaryNavigation;
+  const isLeadDetails = /^\/leads\/[^/]+\/?$/.test(location.pathname);
   const title =
     [
       ...primaryNavigation,
@@ -440,7 +442,9 @@ function Shell({
   };
   return (
     <Context.Provider value={ctx}>
-      <div className="app-shell">
+      <div
+        className={`app-shell ${isLeadDetails ? "lead-detail-shell" : ""} ${isLeadDetails && navigationCollapsed ? "ld-nav-collapsed" : ""}`}
+      >
         <a href="#main" className="skip-link">
           Skip to content
         </a>
@@ -551,14 +555,34 @@ function Shell({
         </aside>
         <div className="app-body">
           <header className="topbar">
+            {isLeadDetails && (
+              <Link
+                className="ld-top-brand"
+                to="/"
+                aria-label="RevenuePilot dashboard"
+              >
+                <Logo />
+              </Link>
+            )}
             <button
               className="icon-button mobile-menu"
-              aria-label="Open navigation"
-              onClick={() => setMobile(true)}
+              aria-label={
+                isLeadDetails && !navigationCollapsed
+                  ? "Toggle navigation"
+                  : "Open navigation"
+              }
+              onClick={() => {
+                if (
+                  isLeadDetails &&
+                  window.matchMedia("(min-width: 741px)").matches
+                )
+                  setNavigationCollapsed((value) => !value);
+                else setMobile((value) => !value);
+              }}
             >
               <Menu size={21} />
             </button>
-            <div className="breadcrumbs">
+            <div className="breadcrumbs" hidden={isLeadDetails}>
               <span>{tenant.name}</span>
               <ChevronRight size={13} />
               <strong>{title}</strong>
@@ -597,6 +621,12 @@ function Shell({
               <Bell size={18} />
             </button>
             <span className="top-avatar">{session.user.name[0]}</span>
+            {isLeadDetails && (
+              <div className="ld-top-user">
+                <strong>{session.user.name}</strong>
+                <small>{tenant.role}</small>
+              </div>
+            )}
           </header>
           <main id="main" className="workspace-main" key={tenant.id}>
             <Routes>
