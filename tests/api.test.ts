@@ -180,6 +180,90 @@ describe("real MongoDB API workflows", () => {
       JSON.stringify(await Idempotency.find({ tenantId: a.tenantId }).lean()),
     ).not.toContain(leadBody.email);
   });
+  it("saves an idempotent team note without creating contact or changing stage", async () => {
+    const created = await send(a, "post", "/leads", {
+      ...leadBody,
+      name: "Team note example",
+    }).expect(201);
+    const noteLeadId = created.body.id;
+    const operation = randomUUID();
+    const input = { note: "Synthetic context for the next conversation" };
+    const before = await Lead.findById(noteLeadId).lean();
+    await send(
+      a,
+      "post",
+      `/leads/${noteLeadId}/notes`,
+      input,
+      operation,
+    ).expect(201);
+    await send(
+      a,
+      "post",
+      `/leads/${noteLeadId}/notes`,
+      input,
+      operation,
+    ).expect(201);
+    await send(
+      a,
+      "post",
+      `/leads/${noteLeadId}/notes`,
+      { note: "Different context" },
+      operation,
+    ).expect(409);
+    await drainOutbox();
+    const after = await Lead.findById(noteLeadId).lean();
+    expect(after?.stage).toBe(before?.stage);
+    expect(after?.version).toBe(before!.version + 1);
+    expect(after?.lastContactAt).toEqual(before?.lastContactAt);
+    expect(after?.note).toBe(before?.note);
+    expect(
+      await Event.countDocuments({
+        tenantId: a.tenantId,
+        leadId: noteLeadId,
+        type: "lead.note_added.v1",
+      }),
+    ).toBe(1);
+    expect(
+      await Audit.countDocuments({
+        tenantId: a.tenantId,
+        targetId: noteLeadId,
+        action: "lead.note_added",
+      }),
+    ).toBe(1);
+    const history = await send(a, "get", `/leads/${noteLeadId}`).expect(200);
+    expect(
+      history.body.events.find(
+        (event: any) => event.type === "lead.note_added.v1",
+      ).detail,
+    ).toBe(input.note);
+    const masked = await send(viewer, "get", `/leads/${noteLeadId}`).expect(
+      200,
+    );
+    expect(
+      masked.body.events.find(
+        (event: any) => event.type === "lead.note_added.v1",
+      ).detail,
+    ).toBe("");
+  });
+  it("scopes team notes to the tenant, assigned counselor, permissions and validated input", async () => {
+    const path = `/leads/${leadId}/notes`;
+    const note = { note: "Synthetic team note" };
+    await send(b, "post", path, note).expect(404);
+    await send(counselor, "post", path, note).expect(404);
+    await send(viewer, "post", path, note).expect(403);
+    await send(a, "post", path, { ...note, stage: "enrolled" }).expect(422);
+    await send(a, "post", path, { note: "  " }).expect(422);
+    await send(a, "post", path, { note: "x".repeat(1001) }).expect(422);
+    const erased = await send(a, "post", "/leads", {
+      ...leadBody,
+      name: "Erased note test",
+    }).expect(201);
+    await Lead.updateOne(
+      { _id: erased.body.id },
+      { $set: { erasedAt: new Date() } },
+    );
+    await send(a, "post", `/leads/${erased.body.id}/notes`, note).expect(404);
+  });
   it("blocks tenant hopping through paths, headers and object IDs", async () => {
     await request(app)
       .get(`/api/v1/tenants/${a.tenantId}/leads/${leadId}`)

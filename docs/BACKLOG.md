@@ -99,3 +99,9 @@ Use **Backlog → In progress → Ready for review → Done**. If a provider or 
 ## Current foundation and release boundaries
 
 See [the implementation record](ROADMAP.md), [acceptance evidence](ACCEPTANCE.md), [architecture](ARCHITECTURE.md) and [marketing guide](MARKETING.md) for what currently exists. UC-01 changes application code in RevenuePilot and the website only. No deployment, LMS change or live outreach is included. The wider ten-stage, multi-industry backlog is not marked complete by this release.
+
+## Lead workspace redesign — 16 November 2026
+
+Implemented the reference-based lead details screen: profile/source header, evidence-based stage strip, overview cards, journey/recent-activity sidebar, keyboard-accessible tabs, responsive navigation and working team notes. Conversations, follow-ups, demos, finance permissions and separate enrollment confirmation retain their existing workflows. See [the screen, API and acceptance notes](LEAD_WORKSPACE.md).
+
+This completes the lead-workspace presentation increment within stages 4, 5 and 10. It does not complete the broader multi-source dashboard, AI-scoring or provider-activation backlog. Code validation is complete; production deployment and live acceptance remain separate.
