@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { MarketingIntelligence } from "./Intelligence";
 import {
   ArrowRight,
   Check,
@@ -54,8 +55,21 @@ const evidenceLabel = (e: string) =>
 export function MarketingSources() {
   const { tenant, refresh, notify } = useWorkspace(),
     action = useAction();
+  const [params, setParams] = useSearchParams();
+  const views = [
+    ["overview", "Overview"],
+    ["gaps", "Observed gaps"],
+    ["recovery", "Retargeting"],
+    ["ideas", "Ideas"],
+    ["links", "Campaign links"],
+    ["sources", "Sources"],
+    ["evidence", "Source evidence"],
+  ];
+  const tab = views.some(([key]) => key === params.get("view"))
+    ? params.get("view")!
+    : "overview";
+  const setTab = (value: string) => setParams({ view: value });
   const [days, setDays] = useState(30),
-    [tab, setTab] = useState("links"),
     [filter, setFilter] = useState("all"),
     [preset, setPreset] = useState<string | null>(null),
     [created, setCreated] = useState(""),
@@ -100,7 +114,7 @@ export function MarketingSources() {
       <Heading
         eyebrow="MARKETING SOURCES"
         title="Marketing"
-        text="Create campaign links, follow consented visits and see where your leads came from."
+        text="Understand your sources, investigate observed gaps and prepare the next recovery action."
       >
         <select
           className="form-select"
@@ -193,11 +207,7 @@ export function MarketingSources() {
         role="tablist"
         aria-label="Marketing views"
       >
-        {[
-          ["links", "Campaign links"],
-          ["sources", "Sources"],
-          ["evidence", "Source evidence"],
-        ].map(([value, label]) => (
+        {views.map(([value, label]) => (
           <button
             key={value}
             role="tab"
@@ -208,7 +218,7 @@ export function MarketingSources() {
             className={tab === value ? "active" : ""}
             onClick={() => setTab(value)}
             onKeyDown={(event) => {
-              const values = ["links", "sources", "evidence"];
+              const values = views.map(([key]) => key);
               if (
                 !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
               )
@@ -218,10 +228,10 @@ export function MarketingSources() {
                 event.key === "Home"
                   ? 0
                   : event.key === "End"
-                    ? 2
+                    ? values.length - 1
                     : (values.indexOf(value) +
-                        (event.key === "ArrowRight" ? 1 : 2)) %
-                      3;
+                        (event.key === "ArrowRight" ? 1 : values.length - 1)) %
+                      values.length;
               setTab(values[next]);
               event.currentTarget.parentElement
                 ?.querySelectorAll<HTMLButtonElement>("button[role=tab]")
@@ -238,6 +248,9 @@ export function MarketingSources() {
         role="tabpanel"
         aria-labelledby={`marketing-tab-${tab}`}
       >
+        {["overview", "gaps", "recovery", "ideas"].includes(tab) && (
+          <MarketingIntelligence view={tab} days={days} />
+        )}
         {tab === "sources" && (
           <>
             <div className="marketing-guide panel padded">

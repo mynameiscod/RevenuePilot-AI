@@ -1,6 +1,21 @@
 # Business use cases and backlog mapping
 
-Updated 15 November 2026. **Status: Backlog.** These are eight business use cases within the existing ten delivery stages, not eight new stages. All were matched to existing issues; no duplicate top-level issues were created.
+Updated 16 November 2026. **Status: UC-01 capture foundation deployed previously; the new marketing/recovery increment is code complete in review; wider route acceptance remains open.** These are eight business use cases within the existing ten delivery stages, not eight new stages. [Architecture #13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13), [recovery #14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14) and [AI intelligence #15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15) extend the existing issue map.
+
+## Marketing, recovery and intelligence by use case
+
+| Use case | Available observation / next recovery work | Status and owning issues |
+| --- | --- | --- |
+| UC-01 existing website | Consented view/start/submit/error/acceptance; mature gaps; Google/YouTube rule-only recipe; website personalization/event wrapper | Code complete in #16 and cbwebsite#2; deployment and real audience matching/exclusion still required; #4 #14 |
+| UC-02 hosted form | Existing capture events feed local gap diagnostics; hosted Google event/consent adapter is not installed by this increment | Google event parity and live setup remain #3 #14 |
+| UC-03 native Meta form | Provider submission and available campaign/ad metadata; unavailable pre-submission identity/history remains unknown | Verified notification/import mapping and provider-native recovery remain #1 #3 #14 |
+| UC-04 WhatsApp | Available inbound/referral and reply evidence; stop/consent state, first response and overdue conversation | Inbound capture and channel-aware recovery remain #3 #6 #14 |
+| UC-05 phone | Observed caller/call time, answered/missed outcome and self-reported source; no invented website click | Telephony ingestion, missed-call recovery and call insight remain #3 #6 #15 |
+| UC-06 walk-in | Staff-recorded visit, source, offering, conversation and next action; browser stages not applicable | Structured route/matching/assignment remain #5 #6 #9 |
+| UC-07 referral | Evidenced referral source, actual entry route and later outcome; referred contact permission is separate | Provenance, source history and consented follow-up remain #2 #5 #10 |
+| UC-08 CRM | External identity, original source, route, actual sales/payment outcome and sync freshness | Conflict-safe intake/outcome mapping and suppression remain #3 #5 #8 #10 |
+
+All routes use the intended business profile, explainable intent/fit policy (#15), appropriate sales stages (#6/#7), financial evidence (#8), business outcome (#9), attribution (#10), and reviewed recommendations/feedback (#11). No route's existence authorizes audience upload or outreach. Full technical specification and readiness: [MARKETING_INTELLIGENCE.md](MARKETING_INTELLIGENCE.md).
 
 ## Goal and shared concepts
 
@@ -36,7 +51,7 @@ Primary ownership avoids duplicating work across stages. [#3](https://github.com
 
 **Example:** Google/Meta ad, organic search or referral → existing business website → enquiry submission.
 
-**Current position:** The existing course/home forms have a feature-flagged RevenuePilot integration prepared for review. Synthetic SDK/API verification covers capture through refund. It is not installed in production; actual origin/form mapping, browser acceptance and provider certification remain release gates. See [WEBSITE_FLOW.md](WEBSITE_FLOW.md).
+**Current position:** The Java website capture integration is deployed and one live acceptance was checked. Full private-dashboard source/ownership verification remains pending. New marketing recovery code is reviewed/tested separately in #16 and cbwebsite#2; it has not been live-verified. Synthetic SDK/API checks cover capture through refund. Real Google account setup, audience exclusions and other provider certification remain release gates. See [WEBSITE_FLOW.md](WEBSITE_FLOW.md).
 
 **Primary issue:** [#3](https://github.com/mynameiscod/RevenuePilot-AI/issues/3). **Related:** [#2](https://github.com/mynameiscod/RevenuePilot-AI/issues/2), [#4](https://github.com/mynameiscod/RevenuePilot-AI/issues/4), [#5](https://github.com/mynameiscod/RevenuePilot-AI/issues/5).
 
@@ -184,4 +199,4 @@ All routes should meet at the same scoped contact/opportunity journey. That does
 
 [#1](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) tracks UC-01 website review/activation; Meta Instant Forms remains deferred. Incoming WhatsApp-to-lead capture, inbound telephony, complete CRM handoff and the generic offering/entry-point split are planned work under the linked issues, not activated integrations.
 
-This update changes GitHub backlog descriptions and planning documents only. Acceptance checklists remain unchecked. It does not modify application behavior, connect live accounts, send messages/calls, execute payments, deploy, or touch the LMS. Validate each selected use case against its parent stage, retain the existing one-stage-at-a-time delivery plan, and record any external dependency before claiming completion.
+The original eight-use-case acceptance checklists remain open for their full scope. The dated marketing increment has code, tests and documentation linked above; its completed subchecks are recorded in #14. It does not connect live ad accounts, send messages/calls, execute payments or touch the LMS. Validate each selected use case against its parent stage and record deployment/provider evidence separately from code completion.

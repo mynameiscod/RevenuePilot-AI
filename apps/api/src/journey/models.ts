@@ -44,6 +44,8 @@ export const Attempt = model(
     viewedAt: Date,
     startedAt: Date,
     submittedAt: Date,
+    failedAt: Date,
+    failureCode: String,
     acceptedAt: Date,
     leadId: String,
     trackingConsent: Boolean,
@@ -76,6 +78,20 @@ export const MarketingLink = model(
     createdBy: String,
   },
   [[{ publicKey: 1 }, { unique: true }], [{ tenantId: 1, createdAt: -1 }]],
+);
+export const RecoveryPlan = model(
+  "MarketingRecoveryPlan",
+  {
+    name: String,
+    formId: String,
+    provider: String,
+    segment: String,
+    membershipDays: Number,
+    status: { type: String, enum: ["draft", "paused"], default: "draft" },
+    version: { type: Number, default: 0 },
+    createdBy: String,
+  },
+  [[{ tenantId: 1, createdAt: -1 }]],
 );
 export const Acceptance = model(
   "LeadAcceptance",
@@ -432,6 +448,7 @@ export const CallRecord = model(
   [[{ tenantId: 1, connectionId: 1, externalId: 1 }, { unique: true }]],
 );
 export const allJourneyModels = [
+  RecoveryPlan,
   MarketingLink,
   Form,
   Attempt,

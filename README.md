@@ -1,5 +1,7 @@
 # RevenuePilot AI
 
+**16 November marketing increment:** Marketing now includes Overview, Observed gaps, Retargeting and Ideas. See the [complete implementation and architecture map](docs/MARKETING_INTELLIGENCE.md), [backlog statuses](docs/BACKLOG.md) and [verification record](docs/ACCEPTANCE.md). Recovery plans prepare Google/YouTube setup; they do not launch ads. AI scoring and automated audience synchronization remain backlog items.
+
 **Product goal:** help a business owner see where leads are lost or delayed, from an ad click or other marketing interaction to a successful business conversion, and connect that journey to advertising cost and money actually collected.
 
 RevenuePilot is an independent multi-tenant product. CodeBegun is the first tenant; education is the first reference use case. The product direction covers business-specific outcomes such as a sale, booking, subscription, signed contract or enrollment. Configurable terminology, optional stages and completion rules are planned in the [ten-stage sequential backlog](docs/BACKLOG.md); they are not all implemented in the current education-shaped demo.

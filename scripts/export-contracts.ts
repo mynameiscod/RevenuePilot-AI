@@ -2,9 +2,14 @@ import { writeFileSync } from "node:fs";
 import { z } from "zod";
 import * as core from "../packages/core/src/contracts.ts";
 import * as journey from "../packages/core/src/journey.ts";
+import * as recovery from "../packages/core/src/recovery.ts";
 import { connectionSettings } from "../packages/connectors/src/settings.ts";
 const schemas: Record<string, unknown> = {};
-for (const [name, value] of Object.entries({ ...core, ...journey }))
+for (const [name, value] of Object.entries({
+  ...core,
+  ...journey,
+  ...recovery,
+}))
   if (value instanceof z.ZodType)
     schemas[name] = z.toJSONSchema(value, {
       io: "input",

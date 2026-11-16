@@ -1052,7 +1052,18 @@
           "enum": [
             "viewed",
             "started",
-            "submitted"
+            "submitted",
+            "failed"
+          ]
+        },
+        "failureCode": {
+          "type": "string",
+          "enum": [
+            "validation",
+            "network",
+            "server",
+            "rate_limited",
+            "unknown"
           ]
         },
         "path": {
@@ -1510,6 +1521,71 @@
           "additionalProperties": false
         }
       },
+      "additionalProperties": false
+    },
+    "recoveryPlanInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100
+        },
+        "formId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+        },
+        "provider": {
+          "type": "string",
+          "enum": [
+            "google_ads",
+            "meta"
+          ]
+        },
+        "segment": {
+          "type": "string",
+          "enum": [
+            "started_not_accepted",
+            "viewed_not_accepted"
+          ]
+        },
+        "membershipDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 90
+        }
+      },
+      "required": [
+        "name",
+        "formId",
+        "provider",
+        "segment",
+        "membershipDays"
+      ],
+      "additionalProperties": false
+    },
+    "recoveryPlanUpdate": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "paused"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "status",
+        "version"
+      ],
       "additionalProperties": false
     },
     "provider_meta": {

@@ -667,3 +667,121 @@ describe("marketing source to accepted lead", () => {
     expect(JSON.stringify(report)).not.toContain("999999");
   });
 });
+
+describe("marketing recovery API", () => {
+  let planId: string;
+  it("saves an idempotent tenant-scoped draft and does not activate a provider", async () => {
+    const input = {
+      name: "Synthetic YouTube recovery",
+      formId,
+      provider: "google_ads",
+      segment: "started_not_accepted",
+      membershipDays: 30,
+    };
+    const key = randomUUID();
+    const first = await send(
+      owner,
+      "post",
+      "/marketing/recovery-plans",
+      input,
+      key,
+    ).expect(201);
+    const again = await send(
+      owner,
+      "post",
+      "/marketing/recovery-plans",
+      input,
+      key,
+    ).expect(201);
+    expect(again.body).toEqual(first.body);
+    planId = first.body.id;
+    expect(first.body).toMatchObject({ status: "draft", version: 0 });
+    await send(analyst, "post", "/marketing/recovery-plans", input).expect(403);
+    await send(other, "post", "/marketing/recovery-plans", input).expect(404);
+    await send(owner, "post", "/marketing/recovery-plans", {
+      ...input,
+      emails: ["not-allowed@example.test"],
+    }).expect(422);
+  });
+  it("allows analysts to read safe rules and rejects foreign tenant reads and stale updates", async () => {
+    const recipe = (
+      await send(
+        analyst,
+        "get",
+        `/marketing/recovery-plans/${planId}/recipe`,
+      ).expect(200)
+    ).body;
+    expect(recipe.identityExport).toBe(false);
+    expect(recipe.automaticActivation).toBe(false);
+    expect(recipe.exclude[0].event).toBe("generate_lead");
+    await send(
+      other,
+      "get",
+      `/marketing/recovery-plans/${planId}/recipe`,
+    ).expect(404);
+    await send(counselor, "get", "/marketing/intelligence").expect(403);
+    await send(owner, "patch", `/marketing/recovery-plans/${planId}`, {
+      version: 0,
+      status: "paused",
+    }).expect(200);
+    await send(owner, "patch", `/marketing/recovery-plans/${planId}`, {
+      version: 0,
+      status: "draft",
+    }).expect(409);
+    await send(owner, "patch", `/marketing/recovery-plans/${planId}`, {
+      version: 1,
+      status: "draft",
+    }).expect(200);
+  });
+  it("classifies a server-accepted attempt ahead of a prior browser failure without exposing contact data", async () => {
+    const ids = { attemptId: randomUUID(), anonymousId: randomUUID() };
+    await publicPost("events", event(ids, {}, "started")).expect(202);
+    await publicPost("events", {
+      ...event(ids, {}, "failed"),
+      failureCode: "network",
+    }).expect(202);
+    const old = new Date(Date.now() - 60 * 60_000);
+    await Attempt.updateOne(
+      { tenantId: owner.tenantId, attemptId: ids.attemptId },
+      { $set: { startedAt: old, failedAt: old } },
+    );
+    const before = (
+      await send(owner, "get", "/marketing/intelligence").expect(200)
+    ).body;
+    expect(before.observations.counts.technical).toBeGreaterThan(0);
+    expect(JSON.stringify(before)).not.toContain(ids.anonymousId);
+    expect(JSON.stringify(before)).not.toContain("Synthetic Marketing Student");
+    await publicPost(
+      "submit",
+      submission("recovery-accepted@example.test", {}, ids),
+    ).expect(201);
+    const after = (
+      await send(owner, "get", "/marketing/intelligence").expect(200)
+    ).body;
+    expect(after.observations.counts.technical).toBe(
+      before.observations.counts.technical - 1,
+    );
+    expect(after.observations.counts.accepted).toBe(
+      before.observations.counts.accepted + 1,
+    );
+    expect(
+      after.plans.find((p: any) => p.id === planId).providerMatchedUsers,
+    ).toBeNull();
+    expect(
+      (await send(other, "get", "/marketing/intelligence").expect(200)).body
+        .plans,
+    ).toEqual([]);
+  });
+  it("rejects raw contact values and unrecognized failure text in optional tracking", async () => {
+    const ids = { attemptId: randomUUID(), anonymousId: randomUUID() };
+    await publicPost("events", {
+      ...event(ids, {}, "failed"),
+      failureCode: "server",
+      email: "not-allowed@example.test",
+    }).expect(422);
+    await publicPost("events", {
+      ...event(ids, {}, "failed"),
+      failureCode: "Full input or response text must not be retained",
+    }).expect(422);
+  });
+});
