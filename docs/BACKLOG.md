@@ -2,6 +2,21 @@
 
 Agreed on 15 November 2026. This is the product delivery plan; it does not mark the ten stages complete.
 
+## Current delivery update — 16 November 2026
+
+The supplied architecture is tracked by [epic #13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13), with [marketing recovery #14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14) and [AI Lead Intelligence #15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15). The existing ten stages and eight use cases remain the source of truth; they were extended rather than duplicated.
+
+| Scope | Current status | Remaining gate |
+| --- | --- | --- |
+| Marketing overview, observed gaps and deterministic Ideas (#4/#11) | Code implemented and locally tested | Deploy and reconcile live observations |
+| Recovery-plan API/UI and Google/YouTube setup recipe (#14) | Code implemented and locally tested | Actual Google property/account setup and audience exclusion/eligibility verification |
+| Website consent/event wrapper (#1/#3/#14) | Code implemented and locally tested in cbwebsite | Deploy this version; flag defaults off; verify a consenting live test |
+| Automated audience sync, Meta recovery, downstream recovery (#14) | Backlog | Provider contracts, permissions, reconciliation and acceptance |
+| Explainable AI validation/intent/fit/scoring (#15) | Backlog | Business policy, model contract, evaluations and human review |
+| Wider ten-stage multi-industry scope (#2–#11) | Partially implemented foundations; issues remain open | Each original issue's full acceptance criteria |
+
+See [MARKETING_INTELLIGENCE.md](MARKETING_INTELLIGENCE.md) for schemas, APIs, UI, evidence semantics, security, tests and rollout. Local tests do not establish production deployment or live ad delivery. GitHub issue updates link the code/CI evidence; only implemented acceptance boxes are checked.
+
 ## Main goal
 
 **Help a business owner understand where potential customers are lost or delayed—from an ad click or other marketing interaction through to a successful business conversion—and connect that journey to advertising cost and money actually collected.**
@@ -44,7 +59,7 @@ Each GitHub issue contains the owner's question, existing foundation, scope, dep
 | 09    | [Revenue attribution by source, campaign and ad](https://github.com/mynameiscod/RevenuePilot-AI/issues/10)             | Which marketing interactions produced business conversions and collected revenue, rather than only enquiries?                            | Backlog         |
 | 10    | [Business-owner drop-off dashboard and improvement feedback](https://github.com/mynameiscod/RevenuePilot-AI/issues/11) | Where are opportunities being lost or delayed, what should the team act on next, and which evidenced outcomes can inform advertising?    | Backlog         |
 
-**Selected scope: UC-01 existing website forms — implementation ready for review; production activation pending.** See [the full operating flow and release gates](WEBSITE_FLOW.md). Existing features should be reused and checked against the expanded business goal; this is not a rebuild from zero.
+The table above preserves the original planning status; the dated delivery update and linked issues carry current increment status. **Selected scope: UC-01 existing website forms and consented marketing recovery.** The existing Java website form has had a live acceptance check; this marketing increment still requires its own deployment/provider verification. See [the full operating flow and release gates](WEBSITE_FLOW.md).
 
 ## Business use cases within the stages
 
@@ -77,7 +92,7 @@ Use **Backlog → In progress → Ready for review → Done**. If a provider or 
 
 ## Existing deferred integration
 
-[Issue #1 — CodeBegun website and Meta Instant Forms](https://github.com/mynameiscod/RevenuePilot-AI/issues/1): **website implementation ready for review; Meta Instant Forms deferred**. It is the existing live-integration work related to items 01, 02 and 04, not an eleventh stage or an automatically activated dependency. Website observations and provider instant-form metrics have different visibility; missing pre-submission histories must not be invented.
+[Issue #1 — CodeBegun website and Meta Instant Forms](https://github.com/mynameiscod/RevenuePilot-AI/issues/1): **existing Java website intake deployed and one live acceptance checked; complete private-dashboard verification and this new marketing deployment remain pending; Meta Instant Forms deferred**. It is the integration work related to items 01, 02 and 04. Website observations and provider instant-form metrics have different visibility; missing pre-submission histories must not be invented.
 
 ## Current foundation and release boundaries
 

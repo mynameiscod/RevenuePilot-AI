@@ -1,5 +1,7 @@
 # Marketing sources: campaign to accepted enquiry
 
+**Current navigation:** Marketing opens Overview, with Observed gaps, Retargeting, Ideas, Campaign links, Sources and Source evidence tabs. The new recovery and diagnostics contract, counting rules and rollout gates are in [MARKETING_INTELLIGENCE.md](MARKETING_INTELLIGENCE.md). The source-flow instructions below remain applicable; their original implementation boundaries are historical and are not evidence of current live-provider activation.
+
 For the existing CodeBegun website implementation and release checklist, see [UC-01 website flow](WEBSITE_FLOW.md).
 
 This milestone connects source setup, consented browser activity and an accepted lead inside RevenuePilot. CodeBegun is the first workspace; the same flow is tenant-scoped for other customers. No external website, LMS, real ad account or production environment is changed by this implementation.

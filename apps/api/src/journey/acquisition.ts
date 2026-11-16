@@ -351,6 +351,7 @@ export function acquisitionRouter(config: Config) {
       viewed: "viewedAt",
       started: "startedAt",
       submitted: "submittedAt",
+      failed: "failedAt",
     }[input.type];
     // Server time is authoritative; retries preserve the earliest observation.
     const scope = {
@@ -361,6 +362,9 @@ export function acquisitionRouter(config: Config) {
     };
     const update = {
       $min: { [field]: new Date() },
+      ...(input.type === "failed"
+        ? { $set: { failureCode: input.failureCode ?? "unknown" } }
+        : {}),
       $setOnInsert: {
         anonymousId: input.anonymousId,
         path: input.path,

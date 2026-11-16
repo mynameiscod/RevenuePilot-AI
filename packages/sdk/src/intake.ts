@@ -193,7 +193,11 @@ export function createIntake(options: {
         remember();
       if (!consent.tracking) clearStorage();
     },
-    record: async (type: "viewed" | "started" | "submitted") => {
+    record: async (
+      type: "viewed" | "started" | "submitted" | "failed",
+      failureCode?:
+        "validation" | "network" | "server" | "rate_limited" | "unknown",
+    ) => {
       if (!consent.tracking || confirmed) return { collected: false };
       if (observed.has(type)) return observed.get(type);
       const promise = send(
@@ -202,6 +206,9 @@ export function createIntake(options: {
           attemptId,
           anonymousId,
           type,
+          ...(type === "failed"
+            ? { failureCode: failureCode ?? "unknown" }
+            : {}),
           path: window.location.pathname,
           trackingConsent: true,
           touch: acquisition,

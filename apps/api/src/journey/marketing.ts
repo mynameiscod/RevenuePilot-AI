@@ -24,6 +24,7 @@ import { audit, idempotent, leadView } from "../services.ts";
 import { lockTenant } from "./entitlements.ts";
 import { randomToken } from "../security.ts";
 import { transaction } from "../db.ts";
+import { attachIntelligenceRoutes } from "./intelligence.ts";
 
 export function marketingUrl(link: any) {
   const url = new URL(String(link.landingUrl));
@@ -331,6 +332,7 @@ export async function marketingReport(
 }
 export function marketingRouter(config: Config) {
   const router = Router({ mergeParams: true });
+  attachIntelligenceRoutes(router);
   router.get(
     "/marketing",
     requirePermission("marketing.read"),

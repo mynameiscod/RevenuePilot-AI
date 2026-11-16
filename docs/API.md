@@ -47,6 +47,21 @@ Verification/reset token lifetime one hour; invite 72 hours. Links use URL fragm
 
 ## Marketing sources
 
+### Marketing intelligence and recovery
+
+| Method/path | Request / authorization | Success |
+| --- | --- | --- |
+| GET `T/marketing/intelligence?days=30` | marketing.read; days 7/30/90 | `{period,observations,sales,ideas,ideaMethod,forms,plans,providerCapabilities,limits}`; no contact or raw browser IDs |
+| POST `T/marketing/recovery-plans` | settings.write + recoveryPlanInput + K | 201 `{id,status:"draft",version:0}`; active same-tenant form; 100-plan cap |
+| PATCH `T/marketing/recovery-plans/:id` | settings.write + recoveryPlanUpdate | `{updated:true,version}`; optimistic version; 409 if changed/unavailable |
+| GET `T/marketing/recovery-plans/:id/recipe` | marketing.read | Provider-specific rules and manual setup requirements, planStatus/formActive; no identity export or activation |
+
+`recoveryPlanInput`: strict name (3–100), formId UUID, provider google_ads/meta, segment started_not_accepted/viewed_not_accepted, membershipDays integer 1–90. Update: strict status draft/paused and current nonnegative integer version. Google recipes require manual provider setup; Meta returns connector_backlog and no event mapping. `providerMatchedUsers` remains null. Detailed cohort, overflow, privacy and capability semantics: [MARKETING_INTELLIGENCE.md](MARKETING_INTELLIGENCE.md).
+
+Public `formEventInput` additionally allows type `failed` with optional failureCode validation/network/server/rate_limited/unknown. Unknown/raw fields are rejected. It remains optional consented telemetry and never creates a lead. Existing submission and acceptance contracts are unchanged.
+
+### Existing source and campaign contracts
+
 | Method/path                   | Request / authorization                           | Success                                                                                                 |
 | ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | GET `T/marketing?days=30`     | marketing.read: owner/admin/analyst; days 7/30/90 | `{period,totals,sources,links,advertising,recentLeads,recentLeadsTotal,forms,connections,integration?}` |

@@ -1,12 +1,18 @@
 # Implementation status and remaining release gates
 
+## Marketing intelligence increment — 16 November 2026
+
+Implemented and locally tested: Overview / Observed gaps / Retargeting / Ideas, tenant-scoped aggregate and recovery-plan APIs, strict failure observations, versioned draft/paused plans, Google-only setup recipes and consent-controlled website Google events. See [the full implementation record](MARKETING_INTELLIGENCE.md). The local suite passes 110 tests across 15 files; both production builds pass. Live deployment and Google account/audience verification are separate gates.
+
+Architecture tracking: [#13](https://github.com/mynameiscod/RevenuePilot-AI/issues/13); recovery [#14](https://github.com/mynameiscod/RevenuePilot-AI/issues/14); AI lead intelligence [#15](https://github.com/mynameiscod/RevenuePilot-AI/issues/15). Rules-based ideas are implemented; trained/model-backed intent, fit and scoring are not. Existing stages and use cases remain open for their wider scope.
+
 ## Sequential product backlog — 15 November 2026
 
 The product goal is to show business owners where leads are lost or delayed between marketing and their business-specific successful conversion, with source/cost and collected-revenue evidence. CodeBegun remains the first tenant; education is one template rather than the limit of the product.
 
 The [ten-stage backlog](BACKLOG.md) is the current delivery sequence, with one separate GitHub issue per stage: marketing source, entry points, form interaction, lead creation, contact/qualification, demo/consultation, payment, business conversion, attribution, and improvement/feedback. Work on one item at a time, reuse the foundations below, demonstrate its acceptance criteria and review it before moving to the next.
 
-All ten expanded-scope items start in Backlog; no implementation is started by this planning update. Configurable non-education workflows and outcome rules remain planned work. [CodeBegun website / Meta Instant Forms integration #1](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) stays deferred and is linked to the relevant stages.
+All ten expanded-scope items originally started in Backlog. Current increment status is recorded above and in the linked issues. Configurable non-education workflows and outcome rules remain planned work. [CodeBegun website / Meta Instant Forms integration #1](https://github.com/mynameiscod/RevenuePilot-AI/issues/1) records the deployed website foundation separately from deferred Meta Instant Forms.
 
 The [business use-case map](BUSINESS_USE_CASES.md) expands the existing issues with eight capture/origination scenarios and their specific acceptance checklists. Incoming WhatsApp-to-lead capture, inbound telephony, complete CRM outcome handoff and the Offering / Entry point / Lead journey split remain planned, not activated. These details do not alter the one-stage-at-a-time sequence.
 

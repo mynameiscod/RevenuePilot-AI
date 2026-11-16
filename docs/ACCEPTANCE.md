@@ -1,5 +1,13 @@
 # Acceptance plan and verification record
 
+## Marketing intelligence / recovery — 16 November 2026
+
+Local verification passes **110 tests in 15 files**, TypeScript and production builds for RevenuePilot and cbwebsite. New tests cover pending/mature/accepted classification, missing observations, failure symptoms, strict rule-only recipes, Meta unsupported capability, foreign tenant access, read/write roles, idempotent draft creation, version conflicts, rejection of contact-list uploads, and acceptance removing an attempt from recovery candidates. Focused marketing tests were rerun after capability changes.
+
+Website tests pass for denied/granted/withdrawn/re-granted/expired consent, the disabled recovery flag, no automatic upgrade from old permission, bounded event queue, allowlisted parameters, query/token stripping, broken-tag isolation and distinction between start and accepted enquiry. Existing intake tests cover safe duplicate/uncertain retries. This is mocked Google transport, not proof of Google account receipt or delivery.
+
+Local Chromium demo QA covers the new Overview, Observed gaps, Ideas, creation of a synthetic Java recovery plan, viewing its Google recipe, pausing/reopening the draft, keyboard navigation and switching to another workspace without the plan leaking. Empty counts remain explicit rather than invented from seeded lead stages. The [verified screen](screenshots/marketing-recovery-verified.jpg) contains synthetic demo data. See [MARKETING_INTELLIGENCE.md](MARKETING_INTELLIGENCE.md) for the architecture map and remaining live acceptance matrix. Current-commit CI is authoritative for Linux/Windows/container execution. No ads, audience uploads or budget changes were performed by these checks.
+
 ## Automated acceptance
 
 | Area                | Required behavior                                                                                                                                                                                  | Tests / checks                                       |

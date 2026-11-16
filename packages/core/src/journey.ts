@@ -82,7 +82,10 @@ export const formEventInput = z
   .object({
     attemptId: identifier,
     anonymousId: identifier,
-    type: z.enum(["viewed", "started", "submitted"]),
+    type: z.enum(["viewed", "started", "submitted", "failed"]),
+    failureCode: z
+      .enum(["validation", "network", "server", "rate_limited", "unknown"])
+      .optional(),
     path: z
       .string()
       .regex(/^\/[^?#]*$/)
