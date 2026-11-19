@@ -8,7 +8,14 @@ import {
 } from "../../../../packages/core/src/marketing-intelligence.ts";
 import { useLoad, useWorkspace } from "../workspace";
 import { api } from "../api";
-import { Empty, ErrorBox, Field, Loading, Modal } from "../components";
+import {
+  formatMoney,
+  Empty,
+  ErrorBox,
+  Field,
+  Loading,
+  Modal,
+} from "../components";
 import { useAction, values } from "./Workspace";
 
 type Intelligence = {
@@ -23,6 +30,9 @@ type Intelligence = {
       source: string;
       campaign: string;
       attempts: number;
+      linkedLeads: number;
+      stages: Record<string, number>;
+      net: { currency: string; evidence: string; minor: string }[] | null;
       counts: Record<Gap, number>;
     }[];
   };
@@ -283,6 +293,87 @@ export function MarketingIntelligence({
             )}
           </section>
         </>
+      )}
+      {view === "gaps" && data.observations.groups.length > 0 && (
+        <section className="panel padded mt-3">
+          <h2>Campaign outcomes</h2>
+          <p>
+            Each new lead is counted under its earliest recorded, accepted
+            website attempt in this period. Stage counts show distinct leads.
+            Net receipts include refunds and are grouped by currency and payment
+            evidence.
+          </p>
+          <div className="table-responsive">
+            <table className="table marketing-table">
+              <thead>
+                <tr>
+                  {[
+                    "Form / campaign",
+                    "New leads",
+                    "Contacted successfully",
+                    "Qualified",
+                    "Attended",
+                    "Enrolled",
+                    "Net receipts",
+                    "Next action",
+                  ].map((label) => (
+                    <th key={label}>{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.observations.groups.map((g) => (
+                  <tr key={JSON.stringify([g.formId, g.source, g.campaign])}>
+                    <td>
+                      <strong>{g.campaign || "No campaign recorded"}</strong>
+                      <small>
+                        {g.formName} · {g.source}
+                      </small>
+                    </td>
+                    <td>{g.linkedLeads}</td>
+                    {[
+                      "connected",
+                      "qualified",
+                      "demo_attended",
+                      "enrollment_confirmed",
+                    ].map((type) => (
+                      <td key={type}>{g.stages[type] ?? 0}</td>
+                    ))}
+                    <td>
+                      {g.net === null
+                        ? "Restricted"
+                        : g.net.length
+                          ? g.net.map((row) => (
+                              <div key={row.currency + row.evidence}>
+                                {formatMoney(row.minor, row.currency)} ·{" "}
+                                {row.evidence}
+                              </div>
+                            ))
+                          : "No recorded receipts"}
+                    </td>
+                    <td>
+                      {g.counts.technical || g.counts.submitted ? (
+                        "Investigate submission failures"
+                      ) : g.counts.started ? (
+                        <Link to="/marketing?view=recovery">
+                          Review recovery audience
+                        </Link>
+                      ) : g.linkedLeads > (g.stages.contact_attempted ?? 0) ? (
+                        <Link to="/work">Review first contact</Link>
+                      ) : g.counts.viewed ? (
+                        "Check the form entry point"
+                      ) : g.counts.pending ? (
+                        "Await recent activity"
+                      ) : (
+                        <Link to="/flow">Review outcomes</Link>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
       {view === "ideas" && (
         <>
