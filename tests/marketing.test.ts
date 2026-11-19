@@ -758,6 +758,18 @@ describe("marketing recovery API", () => {
     const after = (
       await send(owner, "get", "/marketing/intelligence").expect(200)
     ).body;
+    const linkedCount = (report: typeof after) =>
+      report.observations.groups.reduce(
+        (total: number, group: { linkedLeads: number }) =>
+          total + group.linkedLeads,
+        0,
+      );
+    expect(linkedCount(after)).toBe(linkedCount(before) + 1);
+    expect(
+      after.observations.groups.every((group: { net: unknown }) =>
+        Array.isArray(group.net),
+      ),
+    ).toBe(true);
     expect(after.observations.counts.technical).toBe(
       before.observations.counts.technical - 1,
     );
