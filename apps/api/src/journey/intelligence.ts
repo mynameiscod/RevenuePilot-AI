@@ -1,6 +1,6 @@
 import type { Router } from "express";
 import { z } from "zod";
-import { identifier } from "../../../../packages/core/src/contracts.ts";
+import { can, identifier } from "../../../../packages/core/src/contracts.ts";
 import {
   recoveryPlanInput,
   recoveryPlanUpdate,
@@ -12,7 +12,7 @@ import {
   recoveryProviders,
 } from "../../../../packages/core/src/marketing-intelligence.ts";
 import { requirePermission, type AuthContext } from "../auth.ts";
-import { Lead } from "../models.ts";
+import { Lead, Receipt } from "../models.ts";
 import { Attempt, Form, RecoveryPlan, Followup, Milestone } from "./models.ts";
 import { AppError } from "../errors.ts";
 import { audit, idempotent } from "../services.ts";
@@ -81,6 +81,72 @@ export async function marketingIntelligence(auth: AuthContext, days: number) {
     );
   const observations = summarizeAttempts(attempts as any, +now);
   const byForm = new Map(forms.map((f) => [String(f._id), f]));
+  // Attribute each new lead once to its earliest retained accepted website attempt.
+  const newLeads = new Set(leadIds.map(String));
+  const cohortByLead = new Map<string, string>();
+  const cohorts = new Map<
+    string,
+    {
+      leads: number;
+      stages: Map<string, Set<string>>;
+      cash: Map<string, bigint>;
+    }
+  >();
+  for (const attempt of attempts
+    .filter((a) => a.acceptedAt && a.leadId)
+    .sort(
+      (a, b) =>
+        +a.acceptedAt! - +b.acceptedAt! ||
+        String(a._id).localeCompare(String(b._id)),
+    )) {
+    const id = String(attempt.leadId);
+    if (!newLeads.has(id) || cohortByLead.has(id)) continue;
+    const key = JSON.stringify([
+      attempt.formId ?? "",
+      attempt.touch?.source ?? "Unknown",
+      attempt.touch?.campaign ?? "",
+    ]);
+    cohortByLead.set(id, key);
+    if (!cohorts.has(key))
+      cohorts.set(key, { leads: 0, stages: new Map(), cash: new Map() });
+    cohorts.get(key)!.leads++;
+  }
+  for (const event of milestones) {
+    const c = cohorts.get(cohortByLead.get(String(event.leadId)) ?? "");
+    if (!c || !event.type) continue;
+    if (!c.stages.has(event.type)) c.stages.set(event.type, new Set());
+    c.stages.get(event.type)!.add(String(event.leadId));
+  }
+  const showCash = can(auth.role!, "revenue.read");
+  if (showCash && cohortByLead.size) {
+    const receipts = await Receipt.find({
+      tenantId,
+      leadId: { $in: [...cohortByLead.keys()] },
+      createdAt: { $gte: from, $lte: now },
+    })
+      .select("leadId kind amountMinor currency evidence")
+      .limit(10001)
+      .lean();
+    if (receipts.length > 10000)
+      throw new AppError(
+        422,
+        "REPORT_TOO_LARGE",
+        "Select a shorter reporting period.",
+      );
+    for (const receipt of receipts) {
+      const cohort = cohorts.get(cohortByLead.get(String(receipt.leadId))!)!;
+      const key = JSON.stringify([
+        receipt.currency,
+        receipt.evidence ?? "manual_record",
+      ]);
+      const amount = BigInt(receipt.amountMinor);
+      cohort.cash.set(
+        key,
+        (cohort.cash.get(key) ?? 0n) +
+          (receipt.kind === "refund" ? -amount : amount),
+      );
+    }
+  }
   const ideas: {
     id: string;
     title: string;
@@ -143,11 +209,24 @@ export async function marketingIntelligence(auth: AuthContext, days: number) {
     period: { from: from.toISOString(), to: now.toISOString(), days },
     observations: {
       ...observations,
-      groups: observations.groups.map((g) => ({
-        ...g,
-        formName: byForm.get(g.formId)?.name ?? "Unavailable form",
-        offering: byForm.get(g.formId)?.course ?? "",
-      })),
+      groups: observations.groups.map((g) => {
+        const c = cohorts.get(JSON.stringify([g.formId, g.source, g.campaign]));
+        return {
+          linkedLeads: c?.leads ?? 0,
+          stages: Object.fromEntries(
+            Array.from(c?.stages ?? [], ([type, ids]) => [type, ids.size]),
+          ),
+          net: showCash
+            ? Array.from(c?.cash ?? [], ([key, amount]) => {
+                const [currency, evidence] = JSON.parse(key);
+                return { currency, evidence, minor: amount.toString() };
+              })
+            : null,
+          ...g,
+          formName: byForm.get(g.formId)?.name ?? "Unavailable form",
+          offering: byForm.get(g.formId)?.course ?? "",
+        };
+      }),
     },
     sales: {
       leads: leads.length,
